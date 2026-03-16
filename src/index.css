@@ -66,13 +66,13 @@ cast-media-player {
 }
 
 #idle-logo {
-  width: 120px;
+  width: 180px;
   height: auto;
   filter: drop-shadow(0 4px 24px rgba(168, 85, 247, 0.5));
 }
 
 #idle-message {
-  font-size: 28px;
+  font-size: 42px;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.8);
   letter-spacing: 2px;
