@@ -29,37 +29,21 @@ cast-media-player {
   pointer-events: auto;
 }
 
-/* Poster mosaic */
+/* Backdrop crossfade */
 
-#poster-grid {
+.backdrop {
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-  gap: 4px;
-  padding: 4px;
-}
-
-.poster-cell {
   background-size: cover;
-  background-position: center top;
-  background-color: #1a1a1a;
-  border-radius: 6px;
-  opacity: 1;
-  transition: opacity 0.8s ease;
-  animation: posterFadeIn 1.2s ease backwards;
+  background-position: center;
+  background-color: #0a0a0a;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+  will-change: opacity;
 }
 
-@keyframes posterFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.backdrop.active {
+  opacity: 1;
 }
 
 /* Dark overlay for readability */
@@ -73,9 +57,9 @@ cast-media-player {
   justify-content: center;
   background: radial-gradient(
     ellipse at center,
-    rgba(0, 0, 0, 0.85) 0%,
-    rgba(0, 0, 0, 0.6) 50%,
-    rgba(0, 0, 0, 0.4) 100%
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0.35) 100%
   );
 }
 
@@ -83,18 +67,6 @@ cast-media-player {
   width: 120px;
   height: auto;
   filter: drop-shadow(0 4px 24px rgba(168, 85, 247, 0.5));
-  animation: logoPulse 4s ease-in-out infinite;
-}
-
-@keyframes logoPulse {
-  0%, 100% {
-    transform: scale(1);
-    filter: drop-shadow(0 4px 24px rgba(168, 85, 247, 0.5));
-  }
-  50% {
-    transform: scale(1.04);
-    filter: drop-shadow(0 6px 32px rgba(168, 85, 247, 0.7));
-  }
 }
 
 #idle-message {

@@ -7,7 +7,7 @@ import {
 import {
   hideIdleScreen,
   showIdleScreen,
-  loadPosters,
+  loadBackdrops,
   stopCycling,
 } from "./idleScreen";
 import type { ReceiverCustomData } from "./types";
@@ -42,7 +42,7 @@ export function initializeReceiver(): void {
 
         if (!postersLoaded) {
           postersLoaded = true;
-          loadPosters();
+          loadBackdrops();
         }
 
         if (customData.Id) {
@@ -78,7 +78,7 @@ export function initializeReceiver(): void {
       console.log("[Receiver] Media finished");
       stopReporting(playerManager);
       showIdleScreen();
-      if (postersLoaded) loadPosters();
+      if (postersLoaded) loadBackdrops();
     }
   );
 
@@ -88,7 +88,7 @@ export function initializeReceiver(): void {
       console.log("[Receiver] Stop requested");
       stopReporting(playerManager);
       showIdleScreen();
-      if (postersLoaded) loadPosters();
+      if (postersLoaded) loadBackdrops();
     }
   );
 
