@@ -61,8 +61,6 @@ cast-media-player {
   flex-direction: row;
   align-items: center;
   gap: 20px;
-  margin-bottom: 3%;
-  margin-left: 5%;
 }
 
 #idle-logo {
