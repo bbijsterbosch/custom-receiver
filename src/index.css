@@ -54,7 +54,6 @@ cast-media-player {
 /* Dark overlay for readability */
 
 #idle-overlay {
-  image-s
   position: fixed;
   left: 0;
   bottom: 0;
