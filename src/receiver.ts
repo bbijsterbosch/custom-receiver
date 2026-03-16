@@ -35,10 +35,21 @@ export function initializeReceiver(): void {
   context.addCustomMessageListener(
     CREDENTIALS_NAMESPACE,
     (event: { data: unknown }) => {
-      const creds = event.data as JellyfinCredentials;
-      if (creds?.serverUrl && creds?.accessToken && creds?.userId) {
-        console.log("[Receiver] Credentials received via channel");
-        applyCredentials(creds);
+      try {
+        // The CAF SDK delivers custom channel messages as raw strings.
+        // Parse the JSON payload before casting to our type.
+        const raw = event.data;
+        const creds: JellyfinCredentials =
+          typeof raw === "string" ? JSON.parse(raw) : (raw as JellyfinCredentials);
+
+        if (creds?.serverUrl && creds?.accessToken && creds?.userId) {
+          console.log("[Receiver] Credentials received via channel");
+          applyCredentials(creds);
+        } else {
+          console.warn("[Receiver] Credentials message missing required fields", Object.keys(creds ?? {}));
+        }
+      } catch (err) {
+        console.error("[Receiver] Failed to parse credentials message:", err);
       }
     }
   );
