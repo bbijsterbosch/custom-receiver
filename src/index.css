@@ -14,7 +14,7 @@ body {
 cast-media-player {
   --advancement-fill-color: #a855f7;
   --advancement-background-color: rgba(168, 85, 247, 0.3);
-  --playback-logo-image: url("/icon-android-plain.png");
+  --playback-logo-image: url("./icon-android-plain.png");
 }
 
 /* ── Idle Screen ── */
@@ -54,6 +54,7 @@ cast-media-player {
 /* Dark overlay for readability */
 
 #idle-overlay {
+  image-s
   position: fixed;
   left: 0;
   bottom: 0;
