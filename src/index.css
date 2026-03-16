@@ -49,8 +49,10 @@ cast-media-player {
 /* Dark overlay for readability */
 
 #idle-overlay {
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
