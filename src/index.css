@@ -57,8 +57,10 @@ cast-media-player {
   position: fixed;
   left: 0;
   bottom: 0;
-  text-align: center;
-  font-size: 3vw;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
   margin-bottom: 3%;
   margin-left: 5%;
 }
@@ -70,10 +72,9 @@ cast-media-player {
 }
 
 #idle-message {
-  margin-top: 24px;
   font-size: 28px;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.8);
   letter-spacing: 2px;
-  text-transform: uppercase;
+  margin: 0;
 }
