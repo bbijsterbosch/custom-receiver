@@ -53,16 +53,9 @@ cast-media-player {
   left: 0;
   bottom: 0;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0, 0, 0, 0.75) 0%,
-    rgba(0, 0, 0, 0.5) 50%,
-    rgba(0, 0, 0, 0.35) 100%
-  );
+  font-size: 3vw;
+  margin-bottom: 3%;
+  margin-left: 5%;
 }
 
 #idle-logo {
