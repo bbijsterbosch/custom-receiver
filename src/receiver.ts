@@ -4,13 +4,20 @@ import {
   stopReporting,
   updateVolume,
 } from "./services/playbackReporter";
+import {
+  hideIdleScreen,
+  showIdleScreen,
+  loadPosters,
+  stopCycling,
+} from "./idleScreen";
 import type { ReceiverCustomData } from "./types";
+
+let postersLoaded = false;
 
 export function initializeReceiver(): void {
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
 
-  // Intercept LOAD requests to extract Jellyfin credentials and start reporting
   playerManager.setMessageInterceptor(
     cast.framework.messages.MessageType.LOAD,
     (loadRequestData) => {
@@ -33,6 +40,11 @@ export function initializeReceiver(): void {
           deviceName: customData.deviceName || "Streamyfin Cast Receiver",
         });
 
+        if (!postersLoaded) {
+          postersLoaded = true;
+          loadPosters();
+        }
+
         if (customData.Id) {
           startReporting(customData.Id, playerManager);
         }
@@ -42,11 +54,13 @@ export function initializeReceiver(): void {
         );
       }
 
+      hideIdleScreen();
+      stopCycling();
+
       return loadRequestData;
     }
   );
 
-  // Track volume changes for inclusion in playback reports
   playerManager.setMessageInterceptor(
     cast.framework.messages.MessageType.SET_VOLUME,
     (volumeRequestData) => {
@@ -58,28 +72,38 @@ export function initializeReceiver(): void {
     }
   );
 
-  // Stop reporting when media finishes
   playerManager.addEventListener(
     cast.framework.events.EventType.MEDIA_FINISHED,
     () => {
       console.log("[Receiver] Media finished");
       stopReporting(playerManager);
+      showIdleScreen();
+      if (postersLoaded) loadPosters();
     }
   );
 
-  // Stop reporting on explicit stop request
   playerManager.addEventListener(
     cast.framework.events.EventType.REQUEST_STOP,
     () => {
       console.log("[Receiver] Stop requested");
       stopReporting(playerManager);
+      showIdleScreen();
+      if (postersLoaded) loadPosters();
     }
   );
 
-  // Clean up when the cast session ends
+  playerManager.addEventListener(
+    cast.framework.events.EventType.PLAYER_LOADING,
+    () => {
+      hideIdleScreen();
+      stopCycling();
+    }
+  );
+
   context.addEventListener(cast.framework.system.EventType.SHUTDOWN, () => {
     console.log("[Receiver] Session shutting down");
     stopReporting(playerManager);
+    stopCycling();
     clearApi();
   });
 
