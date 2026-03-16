@@ -1,11 +1,16 @@
 body {
-  margin: 0;
-  padding: 0;
-  background: #000;
-  overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  height: 100%;
+  width: 100%;
 }
 
+body {
+  font-family: Quicksand, sans-serif;
+  font-weight: 300;
+  color: #ddd;
+  background-color: #000;
+  margin: 0;
+  padding: 0;
+}
 cast-media-player {
   --advancement-fill-color: #a855f7;
   --advancement-background-color: rgba(168, 85, 247, 0.3);
