@@ -10,13 +10,38 @@ import {
   loadBackdrops,
   stopCycling,
 } from "./idleScreen";
-import type { ReceiverCustomData } from "./types";
+import type { JellyfinCredentials, ReceiverCustomData } from "./types";
+
+const CREDENTIALS_NAMESPACE = "urn:x-cast:streamyfin";
 
 let postersLoaded = false;
+
+function applyCredentials(creds: JellyfinCredentials): void {
+  initializeApi(creds);
+
+  if (!postersLoaded) {
+    postersLoaded = true;
+    loadBackdrops();
+  }
+}
 
 export function initializeReceiver(): void {
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
+
+  // Receive Jellyfin credentials as soon as the sender connects — before any
+  // media is loaded. This lets us fetch backdrops immediately and keeps
+  // credentials out of media metadata.
+  context.addCustomMessageListener(
+    CREDENTIALS_NAMESPACE,
+    (event: { data: unknown }) => {
+      const creds = event.data as JellyfinCredentials;
+      if (creds?.serverUrl && creds?.accessToken && creds?.userId) {
+        console.log("[Receiver] Credentials received via channel");
+        applyCredentials(creds);
+      }
+    }
+  );
 
   playerManager.setMessageInterceptor(
     cast.framework.messages.MessageType.LOAD,
@@ -24,34 +49,8 @@ export function initializeReceiver(): void {
       const customData = loadRequestData.media
         ?.customData as ReceiverCustomData | undefined;
 
-      if (
-        customData?.serverUrl &&
-        customData?.accessToken &&
-        customData?.userId
-      ) {
-        console.log(
-          "[Receiver] Jellyfin credentials received, initializing API"
-        );
-        initializeApi({
-          serverUrl: customData.serverUrl,
-          accessToken: customData.accessToken,
-          userId: customData.userId,
-          deviceId: customData.deviceId,
-          deviceName: customData.deviceName || "Streamyfin Cast Receiver",
-        });
-
-        if (!postersLoaded) {
-          postersLoaded = true;
-          loadBackdrops();
-        }
-
-        if (customData.Id) {
-          startReporting(customData.Id, playerManager);
-        }
-      } else {
-        console.warn(
-          "[Receiver] No Jellyfin credentials in customData — playback reporting disabled"
-        );
+      if (customData?.Id) {
+        startReporting(customData.Id, playerManager);
       }
 
       hideIdleScreen();
@@ -100,11 +99,21 @@ export function initializeReceiver(): void {
     }
   );
 
+  context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => {
+    console.log("[Receiver] Sender disconnected — clearing credentials");
+    stopReporting(playerManager);
+    stopCycling();
+    clearApi();
+    postersLoaded = false;
+    showIdleScreen();
+  });
+
   context.addEventListener(cast.framework.system.EventType.SHUTDOWN, () => {
     console.log("[Receiver] Session shutting down");
     stopReporting(playerManager);
     stopCycling();
     clearApi();
+    postersLoaded = false;
   });
 
   const options = new cast.framework.CastReceiverOptions();

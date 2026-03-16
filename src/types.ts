@@ -1,12 +1,19 @@
+/**
+ * Sent from the sender to the receiver via the custom channel
+ * (urn:x-cast:streamyfin) as soon as the Cast session connects.
+ * Kept out of media customData so credentials never appear in media metadata.
+ */
 export interface JellyfinCredentials {
   serverUrl: string;
   accessToken: string;
   userId: string;
-  deviceId: string;
-  deviceName: string;
 }
 
-export interface ReceiverCustomData extends JellyfinCredentials {
+/**
+ * Sent in customData of each LOAD request.
+ * Contains only item metadata — no credentials.
+ */
+export interface ReceiverCustomData {
   Id: string;
   Name?: string;
   Type?: string;
