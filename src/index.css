@@ -1,0 +1,15 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  overflow: hidden;
+}
+
+cast-media-player {
+  --advancement-fill-color: #a855f7;
+  --advancement-background-color: rgba(168, 85, 247, 0.3);
+  --splash-image: url("/favicon.svg");
+  --splash-color: #121212;
+  --splash-size: 180px;
+  --playback-logo-image: url("/favicon.svg");
+}
