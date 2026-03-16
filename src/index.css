@@ -9,7 +9,7 @@ body {
 cast-media-player {
   --advancement-fill-color: #a855f7;
   --advancement-background-color: rgba(168, 85, 247, 0.3);
-  --playback-logo-image: url("/icon-android-plane.png");
+  --playback-logo-image: url("/icon-android-plain.png");
 }
 
 /* ── Idle Screen ── */
