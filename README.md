@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# Streamyfin Cast Receiver
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A custom Google Cast (CAF) receiver for [Streamyfin](https://github.com/streamyfin/streamyfin) that handles Jellyfin playback reporting directly from the casting device.
 
-Currently, two official plugins are available:
+## Why a custom receiver?
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The default Google Cast receiver has no knowledge of Jellyfin. Playback reporting (tracking watch progress) has to happen from the sender (your phone), which breaks when the app goes to sleep or loses connection. This custom receiver reports playback status directly to your Jellyfin server, making progress tracking reliable regardless of what the sender device is doing.
 
-## React Compiler
+## How it works
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. The Streamyfin app sends media to the receiver along with Jellyfin credentials via `customData`
+2. The receiver intercepts the LOAD request, initializes a Jellyfin API client, and begins playback
+3. Playback start, progress (every 10s), and stop events are reported directly to Jellyfin from the receiver
+4. Google's `cast-media-player` handles all video rendering and the TV-side UI
 
-## Expanding the ESLint configuration
+## Project structure
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+  main.ts                  Entry point — initializes the CAF receiver
+  receiver.ts              LOAD interceptor, event handlers, volume tracking
+  types.ts                 TypeScript interfaces for sender/receiver communication
+  services/
+    jellyfinApi.ts         Jellyfin SDK client initialization
+    playbackReporter.ts    Playback start/progress/stop reporting
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
+
+## Build
+
+```bash
+npm run build
+```
+
+Output goes to `dist/`.
+
+## Deployment
+
+This project includes a GitHub Actions workflow that automatically deploys to GitHub Pages on every push to `main`.
+
+To set it up:
+
+1. Push this repo to GitHub
+2. Go to **Settings > Pages** and set the source to **GitHub Actions**
+3. The receiver will be live at `https://<username>.github.io/<repo-name>/`
+
+Register the URL in the [Google Cast Developer Console](https://cast.google.com/publish/) to get a receiver App ID.
+
+## Tech stack
+
+- [Cast Application Framework (CAF)](https://developers.google.com/cast/docs/web_receiver) — receiver SDK
+- [@jellyfin/sdk](https://github.com/jellyfin/jellyfin-sdk-typescript) — Jellyfin API client
+- [Vite](https://vite.dev) — build tooling
+- TypeScript
