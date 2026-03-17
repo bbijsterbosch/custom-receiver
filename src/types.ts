@@ -1,12 +1,18 @@
+/**
+ * Sent from the sender via the custom channel (urn:x-cast:streamyfin)
+ * as soon as the Cast session connects — before any media is loaded.
+ */
 export interface JellyfinCredentials {
   serverUrl: string;
   accessToken: string;
   userId: string;
-  deviceId: string;
-  deviceName: string;
 }
 
-export interface ReceiverCustomData extends JellyfinCredentials {
+/**
+ * Sent in customData of each LOAD request.
+ * Contains only item metadata — credentials come via the custom channel.
+ */
+export interface ReceiverCustomData {
   Id: string;
   Name?: string;
   Type?: string;

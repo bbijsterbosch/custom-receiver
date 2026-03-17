@@ -4,6 +4,7 @@ import type { JellyfinCredentials } from "../types";
 
 const CLIENT_NAME = "Streamyfin Cast Receiver";
 const CLIENT_VERSION = "1.0.0";
+const RECEIVER_DEVICE_ID = "streamyfin-cast-receiver";
 
 let currentApi: Api | null = null;
 let currentCredentials: JellyfinCredentials | null = null;
@@ -12,8 +13,8 @@ export function initializeApi(credentials: JellyfinCredentials): Api {
   const jellyfin = new Jellyfin({
     clientInfo: { name: CLIENT_NAME, version: CLIENT_VERSION },
     deviceInfo: {
-      name: credentials.deviceName || "Streamyfin Cast Receiver",
-      id: credentials.deviceId,
+      name: CLIENT_NAME,
+      id: RECEIVER_DEVICE_ID,
     },
   });
 
