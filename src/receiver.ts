@@ -16,37 +16,35 @@ const CREDENTIALS_NAMESPACE = "urn:x-cast:streamyfin";
 
 let postersLoaded = false;
 
-function applyCredentials(creds: JellyfinCredentials): void {
-  initializeApi(creds);
-
-  if (!postersLoaded) {
-    postersLoaded = true;
-    loadBackdrops();
-  }
-}
-
 export function initializeReceiver(): void {
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
 
-  // Receive Jellyfin credentials as soon as the sender connects — before any
-  // media is loaded. This lets us fetch backdrops immediately and keeps
-  // credentials out of media metadata.
+  // Receive Jellyfin credentials via custom channel as soon as the sender
+  // connects — before any media is loaded.
   context.addCustomMessageListener(
     CREDENTIALS_NAMESPACE,
     (event: { data: unknown }) => {
       try {
-        // The CAF SDK delivers custom channel messages as raw strings.
-        // Parse the JSON payload before casting to our type.
         const raw = event.data;
         const creds: JellyfinCredentials =
-          typeof raw === "string" ? JSON.parse(raw) : (raw as JellyfinCredentials);
+          typeof raw === "string"
+            ? JSON.parse(raw)
+            : (raw as JellyfinCredentials);
 
         if (creds?.serverUrl && creds?.accessToken && creds?.userId) {
           console.log("[Receiver] Credentials received via channel");
-          applyCredentials(creds);
+          initializeApi(creds);
+
+          if (!postersLoaded) {
+            postersLoaded = true;
+            loadBackdrops();
+          }
         } else {
-          console.warn("[Receiver] Credentials message missing required fields", Object.keys(creds ?? {}));
+          console.warn(
+            "[Receiver] Credentials message missing required fields",
+            Object.keys(creds ?? {})
+          );
         }
       } catch (err) {
         console.error("[Receiver] Failed to parse credentials message:", err);
@@ -62,6 +60,8 @@ export function initializeReceiver(): void {
 
       if (customData?.Id) {
         startReporting(customData.Id, playerManager);
+      } else {
+        console.warn("[Receiver] No item ID in customData — reporting disabled");
       }
 
       hideIdleScreen();
@@ -110,21 +110,23 @@ export function initializeReceiver(): void {
     }
   );
 
-  context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => {
-    console.log("[Receiver] Sender disconnected — clearing credentials");
-    stopReporting(playerManager);
-    stopCycling();
-    clearApi();
-    postersLoaded = false;
-    showIdleScreen();
-  });
+  context.addEventListener(
+    cast.framework.system.EventType.SENDER_DISCONNECTED,
+    () => {
+      console.log("[Receiver] Sender disconnected — clearing credentials");
+      stopReporting(playerManager);
+      stopCycling();
+      clearApi();
+      postersLoaded = false;
+      showIdleScreen();
+    }
+  );
 
   context.addEventListener(cast.framework.system.EventType.SHUTDOWN, () => {
     console.log("[Receiver] Session shutting down");
     stopReporting(playerManager);
     stopCycling();
     clearApi();
-    postersLoaded = false;
   });
 
   const options = new cast.framework.CastReceiverOptions();
