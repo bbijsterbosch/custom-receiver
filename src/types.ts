@@ -6,31 +6,29 @@ export interface JellyfinCredentials {
   serverUrl: string;
   accessToken: string;
   userId: string;
-  /** Cast device ID derived from the sender's device ID (sender deviceId + "-cast"). */
-  deviceId: string;
 }
 
 /**
  * Sent in customData of each LOAD request.
- * Contains only item metadata — credentials come via the custom channel.
+ *
+ * The receiver uses this to call getPlaybackInfo itself and obtain the stream
+ * URL — keeping the full playback lifecycle (stream init → play → report) on
+ * the receiver side with a single, consistent Jellyfin API identity.
  */
 export interface ReceiverCustomData {
+  /** Jellyfin item ID. */
   Id: string;
-  /**
-   * mediaSource.TranscodingUrl from the sender.
-   * If present the stream is transcoded; PlaySessionId and MediaSourceId
-   * are extracted from its query params.
-   * Absent for direct-stream / direct-play.
-   */
-  transcodingUrl?: string | null;
-  /** PlaySessionId for direct-stream/direct-play sessions (no transcodingUrl). */
-  sessionId?: string | null;
-  /** MediaSourceId for direct-stream/direct-play sessions. */
-  mediaSourceId?: string | null;
-  /** Selected audio stream index. */
+
+  // ── Playback settings ──────────────────────────────────────────────────────
+  startTimeTicks?: number;
   audioStreamIndex?: number;
-  /** Selected subtitle stream index. */
   subtitleStreamIndex?: number;
+  maxStreamingBitrate?: number;
+  mediaSourceId?: string;
+  /** Use H265/HEVC device profile when true. */
+  enableH265?: boolean;
+
+  // ── Display metadata (for sender UI via mediaStatus.mediaInfo.customData) ──
   Name?: string;
   Type?: string;
   SeriesName?: string;
@@ -41,7 +39,6 @@ export interface ReceiverCustomData {
   RunTimeTicks?: number;
   Overview?: string;
   ImageTags?: Record<string, string>;
-  MediaStreams?: unknown[];
   MediaSources?: Array<{
     Id?: string;
     Bitrate?: number;

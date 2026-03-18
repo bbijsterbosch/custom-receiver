@@ -4,6 +4,7 @@ import {
   stopReporting,
   updateVolume,
 } from "./services/playbackReporter";
+import { initializeStream } from "./services/streamInitializer";
 import {
   hideIdleScreen,
   showIdleScreen,
@@ -16,12 +17,19 @@ const CREDENTIALS_NAMESPACE = "urn:x-cast:streamyfin";
 
 let postersLoaded = false;
 
+// Resolved once credentials have been received so the LOAD interceptor can
+// wait for them rather than racing against the custom-channel message.
+let credentialsReady = false;
+let resolveCredentials!: () => void;
+let credentialsPromise = new Promise<void>((resolve) => {
+  resolveCredentials = resolve;
+});
+
 export function initializeReceiver(): void {
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
 
-  // Receive Jellyfin credentials via custom channel as soon as the sender
-  // connects — before any media is loaded.
+  // ── Credentials ────────────────────────────────────────────────────────────
   context.addCustomMessageListener(
     CREDENTIALS_NAMESPACE,
     (event: { data: unknown }) => {
@@ -35,6 +43,11 @@ export function initializeReceiver(): void {
         if (creds?.serverUrl && creds?.accessToken && creds?.userId) {
           console.log("[Receiver] Credentials received via channel");
           initializeApi(creds);
+
+          if (!credentialsReady) {
+            credentialsReady = true;
+            resolveCredentials();
+          }
 
           if (!postersLoaded) {
             postersLoaded = true;
@@ -52,56 +65,55 @@ export function initializeReceiver(): void {
     }
   );
 
+  // ── LOAD interceptor ───────────────────────────────────────────────────────
+  // The receiver calls getPlaybackInfo itself so that stream init and reporting
+  // all happen under the same Jellyfin API identity — no session mismatch.
   playerManager.setMessageInterceptor(
     cast.framework.messages.MessageType.LOAD,
-    (loadRequestData) => {
+    async (loadRequestData) => {
       const customData = loadRequestData.media
         ?.customData as ReceiverCustomData | undefined;
-  
-      if (customData?.Id) {
-        let playMethod: "Transcode" | "DirectStream" | "DirectPlay" = "DirectStream";
-        let sessionId: string | null = customData.sessionId ?? null;
-        let mediaSourceId: string | null = customData.mediaSourceId ?? null;
-  
-        if (customData.transcodingUrl) {
-          try {
-            const parsed = new URL(customData.transcodingUrl, "http://x");
-            sessionId = parsed.searchParams.get("PlaySessionId") ?? sessionId;
-            // Only fall back to URL param if customData didn't provide one
-            mediaSourceId = mediaSourceId ?? parsed.searchParams.get("MediaSourceId");
-            playMethod = "Transcode";
-          } catch {
-            console.warn("[Receiver] Could not parse transcodingUrl params");
-          }
-        }
-  
-        console.log("[Receiver] LOAD interceptor", {
-          itemId: customData.Id,
-          playMethod,
-          sessionId,
-          mediaSourceId,
-          audioStreamIndex: customData.audioStreamIndex,
-          subtitleStreamIndex: customData.subtitleStreamIndex,
-          transcodingUrl: customData.transcodingUrl,
-        });
-  
-        startReporting(customData.Id, playerManager, {
-          playMethod,
-          sessionId,
-          mediaSourceId,
-          audioStreamIndex: customData.audioStreamIndex,
-          subtitleStreamIndex: customData.subtitleStreamIndex,
-        });
-      } else {
-        console.warn("[Receiver] No item ID in customData — reporting disabled");
+
+      if (!customData?.Id) {
+        console.warn("[Receiver] No item ID in customData — skipping stream init");
+        return loadRequestData;
       }
-  
+
+      // Wait for credentials if they haven't arrived yet.
+      if (!credentialsReady) {
+        console.log("[Receiver] Waiting for credentials before stream init...");
+        await credentialsPromise;
+      }
+
+      // Ask Jellyfin for the stream URL using the receiver's own API.
+      const stream = await initializeStream(customData);
+
+      if (!stream) {
+        console.error("[Receiver] Stream initialization failed");
+        return loadRequestData;
+      }
+
+      // Patch the media info with the resolved stream URL and content type.
+      loadRequestData.media.contentUrl = stream.url;
+      loadRequestData.media.contentType = stream.contentType;
+
+      // Start reporting now that we have accurate session info.
+      startReporting(customData.Id, playerManager, {
+        sessionId: stream.sessionId,
+        mediaSourceId: stream.mediaSourceId,
+        playMethod: stream.transcodingUrl ? "Transcode" : "DirectStream",
+        audioStreamIndex: customData.audioStreamIndex,
+        subtitleStreamIndex: customData.subtitleStreamIndex,
+      });
+
       hideIdleScreen();
       stopCycling();
+
       return loadRequestData;
     }
   );
 
+  // ── Volume ─────────────────────────────────────────────────────────────────
   playerManager.setMessageInterceptor(
     cast.framework.messages.MessageType.SET_VOLUME,
     (volumeRequestData) => {
@@ -113,6 +125,7 @@ export function initializeReceiver(): void {
     }
   );
 
+  // ── Playback events ────────────────────────────────────────────────────────
   playerManager.addEventListener(
     cast.framework.events.EventType.MEDIA_FINISHED,
     () => {
@@ -141,6 +154,7 @@ export function initializeReceiver(): void {
     }
   );
 
+  // ── Session lifecycle ──────────────────────────────────────────────────────
   context.addEventListener(
     cast.framework.system.EventType.SENDER_DISCONNECTED,
     () => {
@@ -149,6 +163,11 @@ export function initializeReceiver(): void {
       stopCycling();
       clearApi();
       postersLoaded = false;
+      // Reset credentials gate for next session.
+      credentialsReady = false;
+      credentialsPromise = new Promise<void>((resolve) => {
+        resolveCredentials = resolve;
+      });
       showIdleScreen();
     }
   );

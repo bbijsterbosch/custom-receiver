@@ -2,12 +2,9 @@ import { Jellyfin } from "@jellyfin/sdk";
 import type { Api } from "@jellyfin/sdk";
 import type { JellyfinCredentials } from "../types";
 
-// CLIENT_NAME and CLIENT_VERSION must exactly match CAST_CLIENT_NAME and
-// CAST_CLIENT_VERSION in streamyfin/utils/casting/types.ts.
-// deviceId comes from credentials (sender's deviceId + "-cast") so it matches
-// the API instance the sender used for getPlaybackInfo.
 const CLIENT_NAME = "Streamyfin Cast Receiver";
 const CLIENT_VERSION = "1.0.0";
+const DEVICE_ID = "streamyfin-cast-receiver";
 
 let currentApi: Api | null = null;
 let currentCredentials: JellyfinCredentials | null = null;
@@ -17,7 +14,7 @@ export function initializeApi(credentials: JellyfinCredentials): Api {
     clientInfo: { name: CLIENT_NAME, version: CLIENT_VERSION },
     deviceInfo: {
       name: CLIENT_NAME,
-      id: credentials.deviceId,
+      id: DEVICE_ID,
     },
   });
 
