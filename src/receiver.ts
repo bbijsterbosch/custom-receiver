@@ -113,7 +113,7 @@ export function initializeReceiver(): void {
     }
   );
 
-  // ── Volume ─────────────────────────────────────────────────────────────────
+  // Volume 
   playerManager.setMessageInterceptor(
     cast.framework.messages.MessageType.SET_VOLUME,
     (volumeRequestData) => {
@@ -125,7 +125,7 @@ export function initializeReceiver(): void {
     }
   );
 
-  // ── Playback events ────────────────────────────────────────────────────────
+  // Playback events 
   playerManager.addEventListener(
     cast.framework.events.EventType.MEDIA_FINISHED,
     () => {
@@ -154,21 +154,39 @@ export function initializeReceiver(): void {
     }
   );
 
-  // ── Session lifecycle ──────────────────────────────────────────────────────
+  // Session 
   context.addEventListener(
     cast.framework.system.EventType.SENDER_DISCONNECTED,
     () => {
-      console.log("[Receiver] Sender disconnected — clearing credentials");
-      stopReporting(playerManager);
+      const senderCount = context.getSenders().length;
+      const playerState = playerManager.getPlayerState();
+      const isPlaying = playerState !== cast.framework.messages.PlayerState.IDLE;
+
+      console.log(
+        `[Receiver] Sender disconnected — remaining senders: ${senderCount}, player: ${playerState}`
+      );
+
       stopCycling();
-      clearApi();
-      postersLoaded = false;
-      // Reset credentials gate for next session.
-      credentialsReady = false;
-      credentialsPromise = new Promise<void>((resolve) => {
-        resolveCredentials = resolve;
-      });
-      showIdleScreen();
+
+      if (isPlaying) {
+        // Media is still playing — keep the API and reporting alive.
+        // The Chromecast should continue playing regardless of whether
+        // the sender app is open.
+        console.log("[Receiver] Media still playing — keeping session alive");
+        return;
+      }
+
+      // Nothing is playing and no senders remain — full reset.
+      if (senderCount === 0) {
+        stopReporting(playerManager);
+        clearApi();
+        postersLoaded = false;
+        credentialsReady = false;
+        credentialsPromise = new Promise<void>((resolve) => {
+          resolveCredentials = resolve;
+        });
+        showIdleScreen();
+      }
     }
   );
 

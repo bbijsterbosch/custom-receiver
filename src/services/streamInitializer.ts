@@ -1,7 +1,7 @@
 import { getMediaInfoApi } from "@jellyfin/sdk/lib/utils/api";
 import { getDeviceProfile } from "../deviceProfiles";
 import type { ReceiverCustomData } from "../types";
-import { getApi, getCredentials } from "./jellyfinApi";
+import { getApi, getCredential } from "./jellyfinApi";
 
 export interface StreamInfo {
   url: string;
@@ -9,13 +9,9 @@ export interface StreamInfo {
   sessionId: string | null;
   mediaSourceId: string | null;
   transcodingUrl: string | null;
+  playMethod: "Transcode" | "DirectPlay" | "DirectStream";
 }
 
-/**
- * Calls Jellyfin's getPlaybackInfo using the receiver's own API credentials,
- * resolves the stream URL, and returns everything needed for playback reporting.
- * This keeps the full playback lifecycle on the receiver side.
- */
 export async function initializeStream(
   customData: ReceiverCustomData
 ): Promise<StreamInfo | null> {
@@ -51,12 +47,22 @@ export async function initializeStream(
     const transcodingUrl = mediaSource?.TranscodingUrl ?? null;
 
     let url: string;
-    let contentType: string;
+    let playMethod: StreamInfo["playMethod"];
 
     if (transcodingUrl) {
       url = `${api.basePath}${transcodingUrl}`;
-      contentType = "application/x-mpegurl";
+      playMethod = "Transcode";
       console.log("[StreamInitializer] Transcoded stream:", url);
+    } else if (mediaSource?.SupportsDirectPlay) {
+      const params = new URLSearchParams({
+        static: "true",
+        mediaSourceId: mediaSource.Id ?? customData.Id,
+        api_key: api.accessToken
+      });
+      if (sessionId) params.append("playSessionId", sessionId);
+      url = `${api.basePath}/Videos/${customData.Id}/stream.${mediaSource.Container ?? "mp4"}?${params}`;
+      playMethod = "DirectPlay";
+      console.log("[StreamInitializer] Direct play:", url);
     } else {
       const params = new URLSearchParams({
         static: "true",
@@ -64,17 +70,18 @@ export async function initializeStream(
         api_key: api.accessToken,
       });
       if (sessionId) params.append("playSessionId", sessionId);
-      url = `${api.basePath}/Videos/${customData.Id}/stream.mp4?${params}`;
-      contentType = "video/mp4";
+      url = `${api.basePath}/Videos/${customData.Id}/stream?${params}`;
+      playMethod = "DirectStream";
       console.log("[StreamInitializer] Direct stream:", url);
     }
 
     return {
       url,
-      contentType,
+      contentType: "video/mp4",
       sessionId,
       mediaSourceId: mediaSource?.Id ?? null,
       transcodingUrl,
+      playMethod,
     };
   } catch (error) {
     console.error("[StreamInitializer] getPlaybackInfo failed:", error);
