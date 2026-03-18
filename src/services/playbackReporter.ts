@@ -26,14 +26,10 @@ function getPositionTicks(
   return Math.floor(currentTime * 10_000_000);
 }
 
-function isTranscodingUrl(url: string): boolean {
-  return /m3u8/i.test(url);
-}
-
 function isTranscoding(playerManager: framework.PlayerManager): boolean {
   const mediaInfo = playerManager.getMediaInformation();
   const url = mediaInfo?.contentUrl || mediaInfo?.contentId || "";
-  return isTranscodingUrl(url);
+  return /m3u8/i.test(url);
 }
 
 export function updateVolume(level: number, muted: boolean): void {
@@ -43,7 +39,7 @@ export function updateVolume(level: number, muted: boolean): void {
 export function startReporting(
   itemId: string,
   playerManager: framework.PlayerManager,
-  contentUrl?: string
+  playMethod?: "Transcode" | "DirectStream" | "DirectPlay"
 ): void {
   stopReporting(playerManager);
 
@@ -51,7 +47,7 @@ export function startReporting(
   hasReportedStart = false;
   playSessionId = generateSessionId();
 
-  reportPlaybackStart(itemId, playerManager, contentUrl);
+  reportPlaybackStart(itemId, playerManager, playMethod);
 
   reportingInterval = window.setInterval(() => {
     reportPlaybackProgress(itemId, playerManager);
@@ -78,7 +74,7 @@ export function stopReporting(
 async function reportPlaybackStart(
   itemId: string,
   playerManager: framework.PlayerManager,
-  contentUrl?: string
+  playMethod?: "Transcode" | "DirectStream" | "DirectPlay"
 ): Promise<void> {
   const api = getApi();
   if (!api || hasReportedStart) return;
@@ -86,17 +82,15 @@ async function reportPlaybackStart(
   try {
     const playStateApi = getPlaystateApi(api);
 
-    // Use the URL from the LOAD request if available — playerManager.getMediaInformation()
-    // is not yet populated at LOAD intercept time so isTranscoding() would return false.
-    const transcoding = contentUrl
-      ? isTranscodingUrl(contentUrl)
-      : isTranscoding(playerManager);
+    // Use playMethod from customData if provided (set by sender from mediaSource.TranscodingUrl).
+    // Fall back to URL-based detection for progress reports where this isn't available.
+    const resolvedMethod = playMethod ?? (isTranscoding(playerManager) ? "Transcode" : "DirectStream");
 
     await playStateApi.reportPlaybackStart({
       playbackStartInfo: {
         ItemId: itemId,
         PositionTicks: getPositionTicks(playerManager),
-        PlayMethod: transcoding ? "Transcode" : "DirectStream",
+        PlayMethod: resolvedMethod,
         PlaySessionId: playSessionId ?? itemId,
         VolumeLevel: Math.floor(lastVolume.level * 100),
         IsMuted: lastVolume.muted,

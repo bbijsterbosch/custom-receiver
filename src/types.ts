@@ -14,6 +14,8 @@ export interface JellyfinCredentials {
  */
 export interface ReceiverCustomData {
   Id: string;
+  /** Play method determined by the sender from mediaSource.TranscodingUrl. */
+  playMethod?: "Transcode" | "DirectStream" | "DirectPlay";
   Name?: string;
   Type?: string;
   SeriesName?: string;
