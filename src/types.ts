@@ -6,6 +6,8 @@ export interface JellyfinCredentials {
   serverUrl: string;
   accessToken: string;
   userId: string;
+  /** Cast device ID derived from the sender's device ID (sender deviceId + "-cast"). */
+  deviceId: string;
 }
 
 /**
