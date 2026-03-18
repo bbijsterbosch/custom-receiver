@@ -2,6 +2,9 @@ import { Jellyfin } from "@jellyfin/sdk";
 import type { Api } from "@jellyfin/sdk";
 import type { JellyfinCredentials } from "../types";
 
+// These must exactly match CAST_CLIENT_NAME, CAST_CLIENT_VERSION, CAST_DEVICE_ID
+// in streamyfin/utils/casting/types.ts so the sender's getPlaybackInfo call and
+// the receiver's playback reports appear as the same Jellyfin session.
 const CLIENT_NAME = "Streamyfin Cast Receiver";
 const CLIENT_VERSION = "1.0.0";
 const RECEIVER_DEVICE_ID = "streamyfin-cast-receiver";
