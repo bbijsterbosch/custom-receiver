@@ -26,12 +26,14 @@ function getPositionTicks(
   return Math.floor(currentTime * 10_000_000);
 }
 
-function isTranscoding(
-  playerManager: framework.PlayerManager
-): boolean {
+function isTranscodingUrl(url: string): boolean {
+  return /m3u8/i.test(url);
+}
+
+function isTranscoding(playerManager: framework.PlayerManager): boolean {
   const mediaInfo = playerManager.getMediaInformation();
   const url = mediaInfo?.contentUrl || mediaInfo?.contentId || "";
-  return /m3u8/i.test(url);
+  return isTranscodingUrl(url);
 }
 
 export function updateVolume(level: number, muted: boolean): void {
@@ -40,7 +42,8 @@ export function updateVolume(level: number, muted: boolean): void {
 
 export function startReporting(
   itemId: string,
-  playerManager: framework.PlayerManager
+  playerManager: framework.PlayerManager,
+  contentUrl?: string
 ): void {
   stopReporting(playerManager);
 
@@ -48,7 +51,7 @@ export function startReporting(
   hasReportedStart = false;
   playSessionId = generateSessionId();
 
-  reportPlaybackStart(itemId, playerManager);
+  reportPlaybackStart(itemId, playerManager, contentUrl);
 
   reportingInterval = window.setInterval(() => {
     reportPlaybackProgress(itemId, playerManager);
@@ -74,7 +77,8 @@ export function stopReporting(
 
 async function reportPlaybackStart(
   itemId: string,
-  playerManager: framework.PlayerManager
+  playerManager: framework.PlayerManager,
+  contentUrl?: string
 ): Promise<void> {
   const api = getApi();
   if (!api || hasReportedStart) return;
@@ -82,11 +86,17 @@ async function reportPlaybackStart(
   try {
     const playStateApi = getPlaystateApi(api);
 
+    // Use the URL from the LOAD request if available — playerManager.getMediaInformation()
+    // is not yet populated at LOAD intercept time so isTranscoding() would return false.
+    const transcoding = contentUrl
+      ? isTranscodingUrl(contentUrl)
+      : isTranscoding(playerManager);
+
     await playStateApi.reportPlaybackStart({
       playbackStartInfo: {
         ItemId: itemId,
         PositionTicks: getPositionTicks(playerManager),
-        PlayMethod: isTranscoding(playerManager) ? "Transcode" : "DirectStream",
+        PlayMethod: transcoding ? "Transcode" : "DirectStream",
         PlaySessionId: playSessionId ?? itemId,
         VolumeLevel: Math.floor(lastVolume.level * 100),
         IsMuted: lastVolume.muted,
