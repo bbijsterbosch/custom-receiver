@@ -4,6 +4,7 @@ import { getApi } from "./jellyfinApi";
 
 let reportingInterval: number | null = null;
 let currentItemId: string | null = null;
+let currentPlayMethod: "Transcode" | "DirectStream" | "DirectPlay" = "DirectStream";
 let hasReportedStart = false;
 let playSessionId: string | null = null;
 let lastVolume = { level: 1, muted: false };
@@ -26,11 +27,6 @@ function getPositionTicks(
   return Math.floor(currentTime * 10_000_000);
 }
 
-function isTranscoding(playerManager: framework.PlayerManager): boolean {
-  const mediaInfo = playerManager.getMediaInformation();
-  const url = mediaInfo?.contentUrl || mediaInfo?.contentId || "";
-  return /m3u8/i.test(url);
-}
 
 export function updateVolume(level: number, muted: boolean): void {
   lastVolume = { level, muted };
@@ -44,10 +40,11 @@ export function startReporting(
   stopReporting(playerManager);
 
   currentItemId = itemId;
+  currentPlayMethod = playMethod ?? "DirectStream";
   hasReportedStart = false;
   playSessionId = generateSessionId();
 
-  reportPlaybackStart(itemId, playerManager, playMethod);
+  reportPlaybackStart(itemId, playerManager);
 
   reportingInterval = window.setInterval(() => {
     reportPlaybackProgress(itemId, playerManager);
@@ -67,6 +64,7 @@ export function stopReporting(
   }
 
   currentItemId = null;
+  currentPlayMethod = "DirectStream";
   hasReportedStart = false;
   playSessionId = null;
 }
@@ -74,7 +72,6 @@ export function stopReporting(
 async function reportPlaybackStart(
   itemId: string,
   playerManager: framework.PlayerManager,
-  playMethod?: "Transcode" | "DirectStream" | "DirectPlay"
 ): Promise<void> {
   const api = getApi();
   if (!api || hasReportedStart) return;
@@ -82,15 +79,11 @@ async function reportPlaybackStart(
   try {
     const playStateApi = getPlaystateApi(api);
 
-    // Use playMethod from customData if provided (set by sender from mediaSource.TranscodingUrl).
-    // Fall back to URL-based detection for progress reports where this isn't available.
-    const resolvedMethod = playMethod ?? (isTranscoding(playerManager) ? "Transcode" : "DirectStream");
-
     await playStateApi.reportPlaybackStart({
       playbackStartInfo: {
         ItemId: itemId,
         PositionTicks: getPositionTicks(playerManager),
-        PlayMethod: resolvedMethod,
+        PlayMethod: currentPlayMethod,
         PlaySessionId: playSessionId ?? itemId,
         VolumeLevel: Math.floor(lastVolume.level * 100),
         IsMuted: lastVolume.muted,
@@ -122,7 +115,7 @@ async function reportPlaybackProgress(
         ItemId: itemId,
         PositionTicks: getPositionTicks(playerManager),
         IsPaused: state === "PAUSED",
-        PlayMethod: isTranscoding(playerManager) ? "Transcode" : "DirectStream",
+        PlayMethod: currentPlayMethod,
         PlaySessionId: playSessionId ?? itemId,
         VolumeLevel: Math.floor(lastVolume.level * 100),
         IsMuted: lastVolume.muted,
