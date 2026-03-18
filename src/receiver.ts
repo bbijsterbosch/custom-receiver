@@ -50,8 +50,8 @@ export function initializeReceiver(): void {
           }
 
           if (!postersLoaded) {
-            postersLoaded = true;
             loadBackdrops();
+            postersLoaded = true;
           }
         } else {
           console.warn(
@@ -65,9 +65,11 @@ export function initializeReceiver(): void {
     }
   );
 
-  // ── LOAD interceptor ───────────────────────────────────────────────────────
+  // LOAD interceptor
   // The receiver calls getPlaybackInfo itself so that stream init and reporting
-  // all happen under the same Jellyfin API identity — no session mismatch.
+  // all happen under the same Jellyfin API identity — no session mismatch. 
+  // (Sending URL from streamyfin and reporting from receiver 
+  // caused inaccurate source/stream/transcoding reporting)
   playerManager.setMessageInterceptor(
     cast.framework.messages.MessageType.LOAD,
     async (loadRequestData) => {
@@ -132,7 +134,7 @@ export function initializeReceiver(): void {
       console.log("[Receiver] Media finished");
       stopReporting(playerManager);
       showIdleScreen();
-      if (postersLoaded) loadBackdrops();
+      if (!postersLoaded) loadBackdrops();
     }
   );
 
@@ -166,7 +168,6 @@ export function initializeReceiver(): void {
         `[Receiver] Sender disconnected — remaining senders: ${senderCount}, player: ${playerState}`
       );
 
-      stopCycling();
 
       if (isPlaying) {
         // Media is still playing — keep the API and reporting alive.

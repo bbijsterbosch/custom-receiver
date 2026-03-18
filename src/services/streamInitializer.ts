@@ -1,7 +1,7 @@
 import { getMediaInfoApi } from "@jellyfin/sdk/lib/utils/api";
 import { getDeviceProfile } from "../deviceProfiles";
 import type { ReceiverCustomData } from "../types";
-import { getApi, getCredential } from "./jellyfinApi";
+import { getApi, getCredentials} from "./jellyfinApi";
 
 export interface StreamInfo {
   url: string;

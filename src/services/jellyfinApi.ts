@@ -26,9 +26,7 @@ export function initializeApi(credentials: JellyfinCredentials): Api {
 
   console.log(
     "[JellyfinApi] Initialized for server:",
-    credentials.serverUrl,
-    "user:",
-    credentials.userId
+    credentials.serverUrl
   );
 
   return currentApi;
