@@ -57,31 +57,34 @@ export function initializeReceiver(): void {
     (loadRequestData) => {
       const customData = loadRequestData.media
         ?.customData as ReceiverCustomData | undefined;
-
+  
       if (customData?.Id) {
         let playMethod: "Transcode" | "DirectStream" | "DirectPlay" = "DirectStream";
         let sessionId: string | null = customData.sessionId ?? null;
         let mediaSourceId: string | null = customData.mediaSourceId ?? null;
-
+  
         if (customData.transcodingUrl) {
-          // transcodingUrl is a relative path like /videos/.../master.m3u8?PlaySessionId=...&MediaSourceId=...
-          console.log("transcodingUrl", customData.transcodingUrl);
-          console.log("sessionId", sessionId);
-          console.log("mediaSourceId", mediaSourceId);
-          console.log("playMethod", playMethod);
-          console.log("audioStreamIndex", customData.audioStreamIndex);
-          console.log("subtitleStreamIndex", customData.subtitleStreamIndex);
-          
           try {
             const parsed = new URL(customData.transcodingUrl, "http://x");
             sessionId = parsed.searchParams.get("PlaySessionId") ?? sessionId;
-            mediaSourceId = parsed.searchParams.get("MediaSourceId") ?? mediaSourceId;
+            // Only fall back to URL param if customData didn't provide one
+            mediaSourceId = mediaSourceId ?? parsed.searchParams.get("MediaSourceId");
+            playMethod = "Transcode";
           } catch {
             console.warn("[Receiver] Could not parse transcodingUrl params");
           }
-          playMethod = "Transcode";
         }
-
+  
+        console.log("[Receiver] LOAD interceptor", {
+          itemId: customData.Id,
+          playMethod,
+          sessionId,
+          mediaSourceId,
+          audioStreamIndex: customData.audioStreamIndex,
+          subtitleStreamIndex: customData.subtitleStreamIndex,
+          transcodingUrl: customData.transcodingUrl,
+        });
+  
         startReporting(customData.Id, playerManager, {
           playMethod,
           sessionId,
@@ -92,10 +95,9 @@ export function initializeReceiver(): void {
       } else {
         console.warn("[Receiver] No item ID in customData — reporting disabled");
       }
-
+  
       hideIdleScreen();
       stopCycling();
-
       return loadRequestData;
     }
   );
