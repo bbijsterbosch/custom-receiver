@@ -59,7 +59,13 @@ export function initializeReceiver(): void {
         ?.customData as ReceiverCustomData | undefined;
 
       if (customData?.Id) {
-        startReporting(customData.Id, playerManager, customData.playMethod);
+        startReporting(customData.Id, playerManager, {
+          playMethod: customData.playMethod,
+          sessionId: customData.sessionId,
+          mediaSourceId: customData.mediaSourceId,
+          audioStreamIndex: customData.audioStreamIndex,
+          subtitleStreamIndex: customData.subtitleStreamIndex,
+        });
       } else {
         console.warn("[Receiver] No item ID in customData — reporting disabled");
       }

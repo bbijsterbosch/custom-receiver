@@ -5,8 +5,11 @@ import { getApi } from "./jellyfinApi";
 let reportingInterval: number | null = null;
 let currentItemId: string | null = null;
 let currentPlayMethod: "Transcode" | "DirectStream" | "DirectPlay" = "DirectStream";
+let currentSessionId: string | null = null;
+let currentMediaSourceId: string | null = null;
+let currentAudioStreamIndex: number | undefined = undefined;
+let currentSubtitleStreamIndex: number | undefined = undefined;
 let hasReportedStart = false;
-let playSessionId: string | null = null;
 let lastVolume = { level: 1, muted: false };
 
 function generateSessionId(): string {
@@ -20,13 +23,10 @@ function generateSessionId(): string {
   }).join("");
 }
 
-function getPositionTicks(
-  playerManager: framework.PlayerManager
-): number {
+function getPositionTicks(playerManager: framework.PlayerManager): number {
   const currentTime = playerManager.getCurrentTimeSec() ?? 0;
   return Math.floor(currentTime * 10_000_000);
 }
-
 
 export function updateVolume(level: number, muted: boolean): void {
   lastVolume = { level, muted };
@@ -35,14 +35,26 @@ export function updateVolume(level: number, muted: boolean): void {
 export function startReporting(
   itemId: string,
   playerManager: framework.PlayerManager,
-  playMethod?: "Transcode" | "DirectStream" | "DirectPlay"
+  options?: {
+    playMethod?: "Transcode" | "DirectStream" | "DirectPlay";
+    sessionId?: string | null;
+    mediaSourceId?: string | null;
+    audioStreamIndex?: number;
+    subtitleStreamIndex?: number;
+  }
 ): void {
   stopReporting(playerManager);
 
   currentItemId = itemId;
-  currentPlayMethod = playMethod ?? "DirectStream";
+  currentPlayMethod = options?.playMethod ?? "DirectStream";
+  // Use the session ID from the sender so Jellyfin can match this report to the
+  // active transcoding/streaming session. Fall back to a generated ID only if
+  // the sender didn't provide one (e.g. older builds).
+  currentSessionId = options?.sessionId ?? generateSessionId();
+  currentMediaSourceId = options?.mediaSourceId ?? null;
+  currentAudioStreamIndex = options?.audioStreamIndex;
+  currentSubtitleStreamIndex = options?.subtitleStreamIndex;
   hasReportedStart = false;
-  playSessionId = generateSessionId();
 
   reportPlaybackStart(itemId, playerManager);
 
@@ -65,8 +77,11 @@ export function stopReporting(
 
   currentItemId = null;
   currentPlayMethod = "DirectStream";
+  currentSessionId = null;
+  currentMediaSourceId = null;
+  currentAudioStreamIndex = undefined;
+  currentSubtitleStreamIndex = undefined;
   hasReportedStart = false;
-  playSessionId = null;
 }
 
 async function reportPlaybackStart(
@@ -84,14 +99,17 @@ async function reportPlaybackStart(
         ItemId: itemId,
         PositionTicks: getPositionTicks(playerManager),
         PlayMethod: currentPlayMethod,
-        PlaySessionId: playSessionId ?? itemId,
+        PlaySessionId: currentSessionId ?? itemId,
+        MediaSourceId: currentMediaSourceId ?? undefined,
+        AudioStreamIndex: currentAudioStreamIndex,
+        SubtitleStreamIndex: currentSubtitleStreamIndex,
         VolumeLevel: Math.floor(lastVolume.level * 100),
         IsMuted: lastVolume.muted,
       },
     });
 
     hasReportedStart = true;
-    console.log("[PlaybackReporter] Reported playback start:", itemId);
+    console.log("[PlaybackReporter] Reported playback start:", itemId, currentPlayMethod);
   } catch (error) {
     console.error("[PlaybackReporter] Failed to report start:", error);
   }
@@ -116,7 +134,10 @@ async function reportPlaybackProgress(
         PositionTicks: getPositionTicks(playerManager),
         IsPaused: state === "PAUSED",
         PlayMethod: currentPlayMethod,
-        PlaySessionId: playSessionId ?? itemId,
+        PlaySessionId: currentSessionId ?? itemId,
+        MediaSourceId: currentMediaSourceId ?? undefined,
+        AudioStreamIndex: currentAudioStreamIndex,
+        SubtitleStreamIndex: currentSubtitleStreamIndex,
         VolumeLevel: Math.floor(lastVolume.level * 100),
         IsMuted: lastVolume.muted,
       },
@@ -140,7 +161,8 @@ async function reportPlaybackStopped(
       playbackStopInfo: {
         ItemId: itemId,
         PositionTicks: getPositionTicks(playerManager),
-        PlaySessionId: playSessionId ?? itemId,
+        PlaySessionId: currentSessionId ?? itemId,
+        MediaSourceId: currentMediaSourceId ?? undefined,
       },
     });
 
