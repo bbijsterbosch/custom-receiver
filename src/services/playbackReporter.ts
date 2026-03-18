@@ -12,16 +12,6 @@ let currentSubtitleStreamIndex: number | undefined = undefined;
 let hasReportedStart = false;
 let lastVolume = { level: 1, muted: false };
 
-function generateSessionId(): string {
-  const array = new Uint8Array(16);
-  crypto.getRandomValues(array);
-  array[6] = (array[6] & 0x0f) | 0x40;
-  array[8] = (array[8] & 0x3f) | 0x80;
-  return Array.from(array, (b, i) => {
-    const hex = b.toString(16).padStart(2, "0");
-    return [4, 6, 8, 10].includes(i) ? `-${hex}` : hex;
-  }).join("");
-}
 
 function getPositionTicks(playerManager: framework.PlayerManager): number {
   const currentTime = playerManager.getCurrentTimeSec() ?? 0;
@@ -50,7 +40,7 @@ export function startReporting(
   // Use the session ID from the sender so Jellyfin can match this report to the
   // active transcoding/streaming session. Fall back to a generated ID only if
   // the sender didn't provide one (e.g. older builds).
-  currentSessionId = options?.sessionId ?? generateSessionId();
+  currentSessionId = options?.sessionId ?? null;
   currentMediaSourceId = options?.mediaSourceId ?? null;
   currentAudioStreamIndex = options?.audioStreamIndex;
   currentSubtitleStreamIndex = options?.subtitleStreamIndex;

@@ -65,7 +65,13 @@ export function initializeReceiver(): void {
 
         if (customData.transcodingUrl) {
           // transcodingUrl is a relative path like /videos/.../master.m3u8?PlaySessionId=...&MediaSourceId=...
-          // Use a placeholder base so URL can parse the query params.
+          console.log("transcodingUrl", customData.transcodingUrl);
+          console.log("sessionId", sessionId);
+          console.log("mediaSourceId", mediaSourceId);
+          console.log("playMethod", playMethod);
+          console.log("audioStreamIndex", customData.audioStreamIndex);
+          console.log("subtitleStreamIndex", customData.subtitleStreamIndex);
+          
           try {
             const parsed = new URL(customData.transcodingUrl, "http://x");
             sessionId = parsed.searchParams.get("PlaySessionId") ?? sessionId;
