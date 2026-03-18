@@ -14,11 +14,16 @@ export interface JellyfinCredentials {
  */
 export interface ReceiverCustomData {
   Id: string;
-  /** Play method determined by the sender from mediaSource.TranscodingUrl. */
-  playMethod?: "Transcode" | "DirectStream" | "DirectPlay";
-  /** Jellyfin PlaySessionId from getStreamUrl — must match for Jellyfin to track the session. */
+  /**
+   * mediaSource.TranscodingUrl from the sender.
+   * If present the stream is transcoded; PlaySessionId and MediaSourceId
+   * are extracted from its query params.
+   * Absent for direct-stream / direct-play.
+   */
+  transcodingUrl?: string | null;
+  /** PlaySessionId for direct-stream/direct-play sessions (no transcodingUrl). */
   sessionId?: string | null;
-  /** Jellyfin MediaSourceId for the selected media source. */
+  /** MediaSourceId for direct-stream/direct-play sessions. */
   mediaSourceId?: string | null;
   /** Selected audio stream index. */
   audioStreamIndex?: number;

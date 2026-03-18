@@ -59,10 +59,27 @@ export function initializeReceiver(): void {
         ?.customData as ReceiverCustomData | undefined;
 
       if (customData?.Id) {
+        let playMethod: "Transcode" | "DirectStream" | "DirectPlay" = "DirectStream";
+        let sessionId: string | null = customData.sessionId ?? null;
+        let mediaSourceId: string | null = customData.mediaSourceId ?? null;
+
+        if (customData.transcodingUrl) {
+          // transcodingUrl is a relative path like /videos/.../master.m3u8?PlaySessionId=...&MediaSourceId=...
+          // Use a placeholder base so URL can parse the query params.
+          try {
+            const parsed = new URL(customData.transcodingUrl, "http://x");
+            sessionId = parsed.searchParams.get("PlaySessionId") ?? sessionId;
+            mediaSourceId = parsed.searchParams.get("MediaSourceId") ?? mediaSourceId;
+          } catch {
+            console.warn("[Receiver] Could not parse transcodingUrl params");
+          }
+          playMethod = "Transcode";
+        }
+
         startReporting(customData.Id, playerManager, {
-          playMethod: customData.playMethod,
-          sessionId: customData.sessionId,
-          mediaSourceId: customData.mediaSourceId,
+          playMethod,
+          sessionId,
+          mediaSourceId,
           audioStreamIndex: customData.audioStreamIndex,
           subtitleStreamIndex: customData.subtitleStreamIndex,
         });
