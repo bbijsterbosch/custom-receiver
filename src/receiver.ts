@@ -1,16 +1,16 @@
-import { initializeApi, clearApi } from "./services/jellyfinApi";
+import {
+  hideIdleScreen,
+  loadBackdrops,
+  showIdleScreen,
+  stopCycling,
+} from "./idleScreen";
+import { clearApi, initializeApi } from "./services/jellyfinApi";
 import {
   startReporting,
   stopReporting,
   updateVolume,
 } from "./services/playbackReporter";
 import { initializeStream } from "./services/streamInitializer";
-import {
-  hideIdleScreen,
-  showIdleScreen,
-  loadBackdrops,
-  stopCycling,
-} from "./idleScreen";
 import type { JellyfinCredentials, ReceiverCustomData } from "./types";
 
 const CREDENTIALS_NAMESPACE = "urn:x-cast:streamyfin";
@@ -56,28 +56,31 @@ export function initializeReceiver(): void {
         } else {
           console.warn(
             "[Receiver] Credentials message missing required fields",
-            Object.keys(creds ?? {})
+            Object.keys(creds ?? {}),
           );
         }
       } catch (err) {
         console.error("[Receiver] Failed to parse credentials message:", err);
       }
-    }
+    },
   );
 
   // LOAD interceptor
   // The receiver calls getPlaybackInfo itself so that stream init and reporting
-  // all happen under the same Jellyfin API identity — no session mismatch. 
-  // (Sending URL from streamyfin and reporting from receiver 
+  // all happen under the same Jellyfin API identity — no session mismatch.
+  // (Sending URL from streamyfin and reporting from receiver
   // caused inaccurate source/stream/transcoding reporting)
   playerManager.setMessageInterceptor(
     cast.framework.messages.MessageType.LOAD,
     async (loadRequestData) => {
-      const customData = loadRequestData.media
-        ?.customData as ReceiverCustomData | undefined;
+      const customData = loadRequestData.media?.customData as
+        | ReceiverCustomData
+        | undefined;
 
       if (!customData?.Id) {
-        console.warn("[Receiver] No item ID in customData — skipping stream init");
+        console.warn(
+          "[Receiver] No item ID in customData — skipping stream init",
+        );
         return loadRequestData;
       }
 
@@ -112,10 +115,10 @@ export function initializeReceiver(): void {
       stopCycling();
 
       return loadRequestData;
-    }
+    },
   );
 
-  // Volume 
+  // Volume
   playerManager.setMessageInterceptor(
     cast.framework.messages.MessageType.SET_VOLUME,
     (volumeRequestData) => {
@@ -124,10 +127,10 @@ export function initializeReceiver(): void {
         updateVolume(vol.level ?? 1, vol.muted ?? false);
       }
       return volumeRequestData;
-    }
+    },
   );
 
-  // Playback events 
+  // Playback events
   playerManager.addEventListener(
     cast.framework.events.EventType.MEDIA_FINISHED,
     () => {
@@ -135,7 +138,7 @@ export function initializeReceiver(): void {
       stopReporting(playerManager);
       showIdleScreen();
       if (!postersLoaded) loadBackdrops();
-    }
+    },
   );
 
   playerManager.addEventListener(
@@ -145,7 +148,7 @@ export function initializeReceiver(): void {
       stopReporting(playerManager);
       showIdleScreen();
       if (postersLoaded) loadBackdrops();
-    }
+    },
   );
 
   playerManager.addEventListener(
@@ -153,21 +156,21 @@ export function initializeReceiver(): void {
     () => {
       hideIdleScreen();
       stopCycling();
-    }
+    },
   );
 
-  // Session 
+  // Session
   context.addEventListener(
     cast.framework.system.EventType.SENDER_DISCONNECTED,
     () => {
       const senderCount = context.getSenders().length;
       const playerState = playerManager.getPlayerState();
-      const isPlaying = playerState !== cast.framework.messages.PlayerState.IDLE;
+      const isPlaying =
+        playerState !== cast.framework.messages.PlayerState.IDLE;
 
       console.log(
-        `[Receiver] Sender disconnected — remaining senders: ${senderCount}, player: ${playerState}`
+        `[Receiver] Sender disconnected — remaining senders: ${senderCount}, player: ${playerState}`,
       );
-
 
       if (isPlaying) {
         // Media is still playing — keep the API and reporting alive.
@@ -188,7 +191,7 @@ export function initializeReceiver(): void {
         });
         showIdleScreen();
       }
-    }
+    },
   );
 
   context.addEventListener(cast.framework.system.EventType.SHUTDOWN, () => {

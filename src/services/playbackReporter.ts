@@ -1,17 +1,17 @@
-import type { framework } from "chromecast-caf-receiver";
 import { getPlaystateApi } from "@jellyfin/sdk/lib/utils/api";
+import type { framework } from "chromecast-caf-receiver";
 import { getApi } from "./jellyfinApi";
 
 let reportingInterval: number | null = null;
 let currentItemId: string | null = null;
-let currentPlayMethod: "Transcode" | "DirectStream" | "DirectPlay" = "DirectStream";
+let currentPlayMethod: "Transcode" | "DirectStream" | "DirectPlay" =
+  "DirectStream";
 let currentSessionId: string | null = null;
 let currentMediaSourceId: string | null = null;
-let currentAudioStreamIndex: number | undefined = undefined;
-let currentSubtitleStreamIndex: number | undefined = undefined;
+let currentAudioStreamIndex: number | undefined;
+let currentSubtitleStreamIndex: number | undefined;
 let hasReportedStart = false;
 let lastVolume = { level: 1, muted: false };
-
 
 function getPositionTicks(playerManager: framework.PlayerManager): number {
   const currentTime = playerManager.getCurrentTimeSec() ?? 0;
@@ -31,7 +31,7 @@ export function startReporting(
     mediaSourceId?: string | null;
     audioStreamIndex?: number;
     subtitleStreamIndex?: number;
-  }
+  },
 ): void {
   stopReporting(playerManager);
 
@@ -53,9 +53,7 @@ export function startReporting(
   }, 10_000);
 }
 
-export function stopReporting(
-  playerManager?: framework.PlayerManager
-): void {
+export function stopReporting(playerManager?: framework.PlayerManager): void {
   if (reportingInterval !== null) {
     clearInterval(reportingInterval);
     reportingInterval = null;
@@ -99,7 +97,11 @@ async function reportPlaybackStart(
     });
 
     hasReportedStart = true;
-    console.log("[PlaybackReporter] Reported playback start:", itemId, currentPlayMethod);
+    console.log(
+      "[PlaybackReporter] Reported playback start:",
+      itemId,
+      currentPlayMethod,
+    );
   } catch (error) {
     console.error("[PlaybackReporter] Failed to report start:", error);
   }
@@ -107,7 +109,7 @@ async function reportPlaybackStart(
 
 async function reportPlaybackProgress(
   itemId: string,
-  playerManager: framework.PlayerManager
+  playerManager: framework.PlayerManager,
 ): Promise<void> {
   const api = getApi();
   if (!api) return;
@@ -139,7 +141,7 @@ async function reportPlaybackProgress(
 
 async function reportPlaybackStopped(
   itemId: string,
-  playerManager: framework.PlayerManager
+  playerManager: framework.PlayerManager,
 ): Promise<void> {
   const api = getApi();
   if (!api) return;

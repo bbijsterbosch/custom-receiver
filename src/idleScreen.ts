@@ -45,7 +45,7 @@ export async function loadBackdrops(): Promise<void> {
       .filter((item) => item.Id && item.BackdropImageTags?.length)
       .map(
         (item) =>
-          `${creds.serverUrl}/Items/${item.Id}/Images/Backdrop/0?maxWidth=1920&quality=80&tag=${item.BackdropImageTags![0]}`
+          `${creds.serverUrl}/Items/${item.Id}/Images/Backdrop/0?maxWidth=1920&quality=80&tag=${item.BackdropImageTags![0]}`,
       );
 
     if (backdropUrls.length > 0) {

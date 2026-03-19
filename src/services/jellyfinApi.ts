@@ -1,5 +1,5 @@
-import { Jellyfin } from "@jellyfin/sdk";
 import type { Api } from "@jellyfin/sdk";
+import { Jellyfin } from "@jellyfin/sdk";
 import type { JellyfinCredentials } from "../types";
 
 const CLIENT_NAME = "Streamyfin Cast Receiver";
@@ -20,14 +20,11 @@ export function initializeApi(credentials: JellyfinCredentials): Api {
 
   currentApi = jellyfin.createApi(
     credentials.serverUrl,
-    credentials.accessToken
+    credentials.accessToken,
   );
   currentCredentials = credentials;
 
-  console.log(
-    "[JellyfinApi] Initialized for server:",
-    credentials.serverUrl
-  );
+  console.log("[JellyfinApi] Initialized for server:", credentials.serverUrl);
 
   return currentApi;
 }

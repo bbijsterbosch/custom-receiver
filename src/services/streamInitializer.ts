@@ -1,7 +1,7 @@
 import { getMediaInfoApi } from "@jellyfin/sdk/lib/utils/api";
 import { getDeviceProfile } from "../deviceProfiles";
 import type { ReceiverCustomData } from "../types";
-import { getApi, getCredentials} from "./jellyfinApi";
+import { getApi, getCredentials } from "./jellyfinApi";
 
 export interface StreamInfo {
   url: string;
@@ -13,7 +13,7 @@ export interface StreamInfo {
 }
 
 export async function initializeStream(
-  customData: ReceiverCustomData
+  customData: ReceiverCustomData,
 ): Promise<StreamInfo | null> {
   const api = getApi();
   const creds = getCredentials();
@@ -39,7 +39,7 @@ export async function initializeStream(
           maxStreamingBitrate: customData.maxStreamingBitrate,
           mediaSourceId: customData.mediaSourceId,
         },
-      }
+      },
     );
 
     const sessionId = res.data.PlaySessionId ?? null;
@@ -49,28 +49,35 @@ export async function initializeStream(
     let url: string;
     let playMethod: StreamInfo["playMethod"];
 
-    if (transcodingUrl) {
+    const supportsDirectPlay = mediaSource?.SupportsDirectPlay ?? false;
+    const supportsDirectStream = mediaSource?.SupportsDirectStream ?? false;
+    const isActualTranscode = !supportsDirectPlay && !supportsDirectStream;
+
+    if (transcodingUrl && isActualTranscode) {
       url = `${api.basePath}${transcodingUrl}`;
       playMethod = "Transcode";
       console.log("[StreamInitializer] Transcoded stream:", url);
-    } else if (mediaSource?.SupportsDirectPlay) {
-      const params = new URLSearchParams({
-        static: "true",
-        mediaSourceId: mediaSource.Id ?? customData.Id,
-        api_key: api.accessToken
-      });
-      if (sessionId) params.append("playSessionId", sessionId);
-      url = `${api.basePath}/Videos/${customData.Id}/stream.${mediaSource.Container ?? "mp4"}?${params}`;
-      playMethod = "DirectPlay";
-      console.log("[StreamInitializer] Direct play:", url);
-    } else {
+    } else if (supportsDirectPlay) {
       const params = new URLSearchParams({
         static: "true",
         mediaSourceId: mediaSource?.Id ?? customData.Id,
         api_key: api.accessToken,
       });
       if (sessionId) params.append("playSessionId", sessionId);
-      url = `${api.basePath}/Videos/${customData.Id}/stream?${params}`;
+      url = `${api.basePath}/Videos/${customData.Id}/stream.${mediaSource?.Container ?? "mp4"}?${params}`;
+      playMethod = "DirectPlay";
+      console.log("[StreamInitializer] Direct play:", url);
+    } else {
+      // DirectStream — use the transcodingUrl if available (remux), else build manually
+      url = transcodingUrl
+        ? `${api.basePath}${transcodingUrl}`
+        : `${api.basePath}/Videos/${customData.Id}/stream?${new URLSearchParams(
+            {
+              static: "true",
+              mediaSourceId: mediaSource?.Id ?? customData.Id,
+              api_key: api.accessToken,
+            },
+          )}`;
       playMethod = "DirectStream";
       console.log("[StreamInitializer] Direct stream:", url);
     }
