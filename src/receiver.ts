@@ -145,7 +145,6 @@ export function initializeReceiver(): void {
     cast.framework.events.EventType.MEDIA_FINISHED,
     () => {
       console.log("[Receiver] Media finished");
-      stopReporting(playerManager);
       startCycling();
       showIdleScreen();
       if (!postersLoaded) loadBackdrops();
@@ -156,6 +155,7 @@ export function initializeReceiver(): void {
   playerManager.addEventListener(
     cast.framework.events.EventType.REQUEST_STOP,
     () => {
+      stopReporting(playerManager);
       console.log("[Receiver] Stop requested");
     },
   );
