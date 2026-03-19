@@ -5,6 +5,22 @@
     <title>Streamyfin Receiver</title>
     <style>
         @import url('https://fonts.googleapis.com/css?family=Quicksand');
+
+        /* Hide everything until ready */
+        body {
+          visibility: hidden;
+          background: #000;
+        }
+
+        body.ready {
+          visibility: visible;
+          animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
     </style>
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
   </head>
