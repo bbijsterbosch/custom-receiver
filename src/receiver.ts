@@ -6,7 +6,8 @@ import {
 } from "./idleScreen";
 import { clearApi, initializeApi } from "./services/jellyfinApi";
 import {
-  startReporting,
+  beginReporting,
+  prepareReporting,
   stopReporting,
   updateVolume,
 } from "./services/playbackReporter";
@@ -102,8 +103,8 @@ export function initializeReceiver(): void {
       loadRequestData.media.contentUrl = stream.url;
       loadRequestData.media.contentType = stream.contentType;
 
-      // Start reporting now that we have accurate session info.
-      startReporting(customData.Id, playerManager, {
+      // Store session info now, but delay the actual report until PLAYING fires.
+      prepareReporting(customData.Id, playerManager, {
         sessionId: stream.sessionId,
         mediaSourceId: stream.mediaSourceId,
         playMethod: stream.transcodingUrl ? "Transcode" : "DirectStream",
@@ -131,6 +132,13 @@ export function initializeReceiver(): void {
   );
 
   // Playback events
+  playerManager.addEventListener(
+    cast.framework.events.EventType.PLAYING,
+    () => {
+      beginReporting(playerManager);
+    },
+  );
+
   playerManager.addEventListener(
     cast.framework.events.EventType.MEDIA_FINISHED,
     () => {

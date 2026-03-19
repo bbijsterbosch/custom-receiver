@@ -22,7 +22,11 @@ export function updateVolume(level: number, muted: boolean): void {
   lastVolume = { level, muted };
 }
 
-export function startReporting(
+/**
+ * Store session metadata after stream init but before playback actually starts.
+ * Call this from the LOAD interceptor. Does NOT send any reports yet.
+ */
+export function prepareReporting(
   itemId: string,
   playerManager: framework.PlayerManager,
   options?: {
@@ -37,20 +41,28 @@ export function startReporting(
 
   currentItemId = itemId;
   currentPlayMethod = options?.playMethod ?? "DirectStream";
-  // Use the session ID from the sender so Jellyfin can match this report to the
-  // active transcoding/streaming session. Fall back to a generated ID only if
-  // the sender didn't provide one (e.g. older builds).
   currentSessionId = options?.sessionId ?? null;
   currentMediaSourceId = options?.mediaSourceId ?? null;
   currentAudioStreamIndex = options?.audioStreamIndex;
   currentSubtitleStreamIndex = options?.subtitleStreamIndex;
   hasReportedStart = false;
+}
 
-  reportPlaybackStart(itemId, playerManager);
+/**
+ * Send PlaybackStart and begin the progress interval.
+ * Call this from a PLAYING event so reports are sent only once the media
+ * is actually rendering, not while it is still buffering.
+ */
+export function beginReporting(playerManager: framework.PlayerManager): void {
+  if (!currentItemId || hasReportedStart) return;
 
-  reportingInterval = window.setInterval(() => {
-    reportPlaybackProgress(itemId, playerManager);
-  }, 10_000);
+  reportPlaybackStart(currentItemId, playerManager);
+
+  if (reportingInterval === null) {
+    reportingInterval = window.setInterval(() => {
+      if (currentItemId) reportPlaybackProgress(currentItemId, playerManager);
+    }, 10_000);
+  }
 }
 
 export function stopReporting(playerManager?: framework.PlayerManager): void {
