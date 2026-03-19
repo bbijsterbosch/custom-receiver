@@ -45,7 +45,7 @@ export async function initializeStream(
     const sessionId = res.data.PlaySessionId ?? null;
     const mediaSource = res.data.MediaSources?.[0];
     const transcodingUrl = mediaSource?.TranscodingUrl ?? null;
-
+    console.log("[StreamInitializer] Media source:", mediaSource?.SupportsDirectPlay, mediaSource?.SupportsDirectStream);
     let url: string;
     let playMethod: StreamInfo["playMethod"];
 

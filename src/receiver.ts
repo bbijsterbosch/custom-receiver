@@ -184,7 +184,6 @@ export function initializeReceiver(): void {
       if (senderCount === 0) {
         stopReporting(playerManager);
         clearApi();
-        postersLoaded = false;
         credentialsReady = false;
         credentialsPromise = new Promise<void>((resolve) => {
           resolveCredentials = resolve;
@@ -202,7 +201,7 @@ export function initializeReceiver(): void {
   });
 
   const options = new cast.framework.CastReceiverOptions();
-  options.disableIdleTimeout = true;
+  options.disableIdleTimeout = false;
 
   context.start(options);
   console.log("[Receiver] Streamyfin Cast Receiver started");
