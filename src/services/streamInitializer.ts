@@ -45,7 +45,11 @@ export async function initializeStream(
     const sessionId = res.data.PlaySessionId ?? null;
     const mediaSource = res.data.MediaSources?.[0];
     const transcodingUrl = mediaSource?.TranscodingUrl ?? null;
-    console.log("[StreamInitializer] Media source:", mediaSource?.SupportsDirectPlay, mediaSource?.SupportsDirectStream);
+    console.log(
+      "[StreamInitializer] Media source:",
+      mediaSource?.SupportsDirectPlay,
+      mediaSource?.SupportsDirectStream,
+    );
     let url: string;
     let playMethod: StreamInfo["playMethod"];
 
@@ -53,6 +57,8 @@ export async function initializeStream(
     const supportsDirectStream = mediaSource?.SupportsDirectStream ?? false;
     const isActualTranscode = !supportsDirectPlay && !supportsDirectStream;
 
+    // This logic is not correct yet but it works for now. 
+    // (supportsDirectstream is always false even when it should be true)
     if (transcodingUrl && isActualTranscode) {
       url = `${api.basePath}${transcodingUrl}`;
       playMethod = "Transcode";

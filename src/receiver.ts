@@ -139,6 +139,7 @@ export function initializeReceiver(): void {
     },
   );
 
+  // When playback stops, stop reporting and show the idle screen.
   playerManager.addEventListener(
     cast.framework.events.EventType.MEDIA_FINISHED,
     () => {
@@ -149,13 +150,11 @@ export function initializeReceiver(): void {
     },
   );
 
+  // Not sure if this is needed.
   playerManager.addEventListener(
     cast.framework.events.EventType.REQUEST_STOP,
     () => {
       console.log("[Receiver] Stop requested");
-      stopReporting(playerManager);
-      showIdleScreen();
-      if (postersLoaded) loadBackdrops();
     },
   );
 
