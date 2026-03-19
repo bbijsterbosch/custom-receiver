@@ -3,6 +3,7 @@ import {
   loadBackdrops,
   showIdleScreen,
   stopCycling,
+  startCycling,
 } from "./idleScreen";
 import { clearApi, initializeApi } from "./services/jellyfinApi";
 import {
@@ -145,6 +146,7 @@ export function initializeReceiver(): void {
     () => {
       console.log("[Receiver] Media finished");
       stopReporting(playerManager);
+      startCycling();
       showIdleScreen();
       if (!postersLoaded) loadBackdrops();
     },

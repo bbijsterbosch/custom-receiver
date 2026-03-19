@@ -76,7 +76,7 @@ function showBackdrop(url: string): void {
   img.src = url;
 }
 
-function startCycling(): void {
+export function startCycling(): void {
   if (cycleTimer !== null) clearInterval(cycleTimer);
 
   cycleTimer = window.setInterval(() => {
