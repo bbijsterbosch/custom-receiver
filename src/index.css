@@ -15,6 +15,13 @@ cast-media-player {
   --advancement-fill-color: #a855f7;
   --advancement-background-color: rgba(168, 85, 247, 0.3);
   --playback-logo-image: url("./icon-android-plain.png");
+  --title-font-size: 48px;
+  --subtitle-font-size: 32px;
+  --metadata-font-family: Quicksand, sans-serif;
+
+  --overlay-background-color: rgba(0, 0, 0, 0.6)
+  --advancement-fill-color: #a855f7;
+  --advancement-background-color: rgba(168, 85, 247, 0.3);
 }
 
 /* ── Idle Screen ── */
