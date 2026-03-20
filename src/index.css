@@ -19,8 +19,8 @@ cast-media-player {
   --subtitle-font-size: 32px;
   --metadata-font-family: Quicksand, sans-serif;
 
-  --overlay-background-color: rgba(0, 0, 0, 0.6)
-  --advancement-fill-color: #a855f7;
+  --overlay-background-color: rgba(0, 0, 0, 0.6);
+  --advancement-fill-color: rgba(205, 40, 255, 0.8);
   --advancement-background-color: rgba(168, 85, 247, 0.3);
 }
 
