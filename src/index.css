@@ -22,20 +22,6 @@ cast-media-player {
   
 }
 
-/* ── Idle Screen ── */
-#idle-screen::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.7) 0%,
-      rgba(0, 0, 0, 0.2) 50%,
-      rgba(0, 0, 0, 0.4) 100%
-  );
-  pointer-events: none;
-}
-
 #idle-screen {
   position: fixed;
   inset: 0;
