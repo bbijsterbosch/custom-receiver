@@ -3,11 +3,9 @@ import { getDeviceProfile } from "../deviceProfiles";
 import type { ReceiverCustomData } from "../types";
 import { getApi, getCredentials } from "./jellyfinApi";
 
-// Reasons that require actual codec re-encoding (vs container remux = DirectStream).
-// Parsed from the TranscodeReasons query parameter in the transcoding URL.
-const CODEC_TRANSCODE_REASONS = new Set([
+// Parsed from the TranscodeReasons query parameter Jellyfin embeds in the transcoding URL.
+const VIDEO_TRANSCODE_REASONS = new Set([
   "VideoCodecNotSupported",
-  "AudioCodecNotSupported",
   "VideoProfileNotSupported",
   "VideoLevelNotSupported",
   "VideoResolutionNotSupported",
@@ -16,16 +14,20 @@ const CODEC_TRANSCODE_REASONS = new Set([
   "RefFramesNotSupported",
   "AnamorphicVideoNotSupported",
   "InterlacedVideoNotSupported",
+  "VideoBitrateNotSupported",
+  "UnknownVideoStreamInfo",
+  "VideoRangeTypeNotSupported",
+  "VideoCodecTagNotSupported",
+]);
+
+const AUDIO_TRANSCODE_REASONS = new Set([
+  "AudioCodecNotSupported",
   "AudioChannelsNotSupported",
   "AudioProfileNotSupported",
   "AudioSampleRateNotSupported",
   "AudioBitDepthNotSupported",
-  "VideoBitrateNotSupported",
   "AudioBitrateNotSupported",
-  "UnknownVideoStreamInfo",
   "UnknownAudioStreamInfo",
-  "VideoRangeTypeNotSupported",
-  "VideoCodecTagNotSupported",
 ]);
 
 function parseTranscodeReasons(relativeUrl: string | null): string[] {
@@ -43,6 +45,8 @@ export interface StreamInfo {
   mediaSourceId: string | null;
   transcodingUrl: string | null;
   playMethod: "Transcode" | "DirectPlay" | "DirectStream";
+  videoTranscoded: boolean;
+  audioTranscoded: boolean;
 }
 
 export async function initializeStream(
@@ -86,16 +90,14 @@ export async function initializeStream(
     let playMethod: StreamInfo["playMethod"];
 
     const supportsDirectPlay = mediaSource?.SupportsDirectPlay ?? false;
-    // Derive play method from the TranscodeReasons embedded in the transcoding URL —
-    // more reliable than SupportsDirectStream which Jellyfin often reports incorrectly.
-    const transcodeReasons = parseTranscodeReasons(transcodingUrl);
-    const isActualTranscode = transcodeReasons.some((r) => CODEC_TRANSCODE_REASONS.has(r));
 
-    if (transcodingUrl && !supportsDirectPlay && isActualTranscode) {
-      url = `${api.basePath}${transcodingUrl}`;
-      playMethod = "Transcode";
-      console.log("[StreamInitializer] Transcoded stream, reasons:", transcodeReasons.join(", "));
-    } else if (supportsDirectPlay) {
+    // Derive video/audio transcoding separately from the TranscodeReasons param
+    // embedded in the transcoding URL — more reliable than SupportsDirectStream.
+    const transcodeReasons = parseTranscodeReasons(transcodingUrl);
+    const videoTranscoded = transcodeReasons.some((r) => VIDEO_TRANSCODE_REASONS.has(r));
+    const audioTranscoded = transcodeReasons.some((r) => AUDIO_TRANSCODE_REASONS.has(r));
+
+    if (supportsDirectPlay) {
       const params = new URLSearchParams({
         static: "true",
         mediaSourceId: mediaSource?.Id ?? customData.Id,
@@ -105,19 +107,21 @@ export async function initializeStream(
       url = `${api.basePath}/Videos/${customData.Id}/stream.${mediaSource?.Container ?? "mp4"}?${params}`;
       playMethod = "DirectPlay";
       console.log("[StreamInitializer] Direct play:", url.replace(/([?&]api_key=)[^&]+/, "$1***"));
+    } else if (transcodingUrl) {
+      url = `${api.basePath}${transcodingUrl}`;
+      playMethod = videoTranscoded || audioTranscoded ? "Transcode" : "DirectStream";
+      console.log(
+        `[StreamInitializer] ${playMethod} — video: ${videoTranscoded ? "transcode" : "copy"}, audio: ${audioTranscoded ? "transcode" : "copy"}, reasons: ${transcodeReasons.join(", ") || "none"}`,
+      );
     } else {
-      // DirectStream — use the transcodingUrl if available (remux), else build manually
-      url = transcodingUrl
-        ? `${api.basePath}${transcodingUrl}`
-        : `${api.basePath}/Videos/${customData.Id}/stream?${new URLSearchParams(
-            {
-              static: "true",
-              mediaSourceId: mediaSource?.Id ?? customData.Id,
-              api_key: api.accessToken,
-            },
-          )}`;
+      // No transcoding URL — build a direct stream URL manually
+      url = `${api.basePath}/Videos/${customData.Id}/stream?${new URLSearchParams({
+        static: "true",
+        mediaSourceId: mediaSource?.Id ?? customData.Id,
+        api_key: api.accessToken,
+      })}`;
       playMethod = "DirectStream";
-      console.log("[StreamInitializer] Direct stream:", url.replace(/([?&]api_key=)[^&]+/, "$1***"));
+      console.log("[StreamInitializer] Direct stream (manual):", url.replace(/([?&]api_key=)[^&]+/, "$1***"));
     }
 
     const contentType = url.includes(".m3u8")
@@ -131,6 +135,8 @@ export async function initializeStream(
       mediaSourceId: mediaSource?.Id ?? null,
       transcodingUrl,
       playMethod,
+      videoTranscoded,
+      audioTranscoded,
     };
   } catch (error) {
     console.error("[StreamInitializer] getPlaybackInfo failed:", error);
