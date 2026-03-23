@@ -2,6 +2,7 @@ import { getMediaInfoApi } from "@jellyfin/sdk/lib/utils/api";
 import { getDeviceProfile } from "../deviceProfiles";
 import type { ReceiverCustomData } from "../types";
 import { getApi, getCredentials } from "./jellyfinApi";
+import { ImageType } from "@jellyfin/sdk/lib/generated-client/models";
 
 // Parsed from the TranscodeReasons query parameter Jellyfin embeds in the transcoding URL.
 const VIDEO_TRANSCODE_REASONS = new Set([
@@ -75,6 +76,7 @@ export async function initializeStream(
           autoOpenLiveStream: true,
           maxStreamingBitrate: customData.maxStreamingBitrate,
           mediaSourceId: customData.mediaSourceId,
+          ImageType: customData.ImageType
         },
       },
     );

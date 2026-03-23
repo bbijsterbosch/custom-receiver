@@ -38,7 +38,7 @@ export interface ReceiverCustomData {
   ParentIndexNumber?: number;
   RunTimeTicks?: number;
   Overview?: string;
-  ImageTags?: Record<string, string>;
+  ImageType?: Record<string, string>;
   MediaSources?: Array<{
     Id?: string;
     Bitrate?: number;

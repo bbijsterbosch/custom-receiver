@@ -127,9 +127,11 @@ export function initializeReceiver(): void {
 
       // Set poster image so the CAF player shows it while buffering.
       const creds = getCredentials();
-      const posterTag = customData.ImageTags?.Primary;
+      const posterTag = customData.ImageType?.Primary;
+      
       if (creds && posterTag) {
-        const posterUrl = `${creds.serverUrl}/Items/${customData.Id}/Images/Primary?maxWidth=400&quality=90&tag=${posterTag}`;
+        const posterUrl = `${creds.serverUrl}/Items/${customData.Id}/Images/Primary?maxWidth=400&quality=90`;
+        console.log('posterurl:', posterUrl)
         loadRequestData.media.metadata = {
           metadataType: 0, // MetadataType.GENERIC
           title: customData.Name ?? "",
@@ -193,8 +195,7 @@ export function initializeReceiver(): void {
   playerManager.addEventListener(
     cast.framework.events.EventType.REQUEST_STOP,
     () => {
-      stopReporting(playerManager);
-      console.log("[Receiver] Stop requested");
+            console.log("[Receiver] Stop requested");
     },
   );
 
