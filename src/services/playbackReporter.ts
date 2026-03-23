@@ -4,12 +4,7 @@ import { getApi } from "./jellyfinApi";
 
 let reportingInterval: number | null = null;
 let currentItemId: string | null = null;
-let currentPlayMethod: "Transcode" | "DirectStream" | "DirectPlay" =
-  "DirectStream";
 let currentSessionId: string | null = null;
-let currentMediaSourceId: string | null = null;
-let currentAudioStreamIndex: number | undefined;
-let currentSubtitleStreamIndex: number | undefined;
 let hasReportedStart = false;
 let lastVolume = { level: 1, muted: false };
 
@@ -23,12 +18,12 @@ export function updateVolume(level: number, muted: boolean): void {
 }
 
 /**
- * Store session metadata after stream init but wait with reporting until playback actually starts.
- * Call this from the LOAD interceptor. Does NOT send any reports yet.
+ * Store session metadata after stream init but wait with reporting until
+ * playback actually starts. Call this from the LOAD interceptor.
  *
  * Same item (bitrate / audio / subtitle change):
  *   - Fires a stop for the old Jellyfin transcoding session so the server kills
- *     the old transcode job, then swaps in the new parameters.
+ *     the old transcode job, then swaps in the new session ID.
  *   - Does NOT reset hasReportedStart or clear the interval — the watch session
  *     continues uninterrupted from Jellyfin's perspective.
  *
@@ -39,29 +34,19 @@ export function prepareReporting(
   itemId: string,
   playerManager: framework.PlayerManager,
   options?: {
-    playMethod?: "Transcode" | "DirectStream" | "DirectPlay";
     sessionId?: string | null;
-    mediaSourceId?: string | null;
-    audioStreamIndex?: number;
-    subtitleStreamIndex?: number;
   },
 ): void {
   const isSameItem = currentItemId === itemId;
 
   if (isSameItem) {
     // Quality / stream change on the same item.
-    
+    // Stop the old Jellyfin transcoding session so the server can clean it up.
     const oldSessionId = currentSessionId;
-    const oldMediaSourceId = currentMediaSourceId;
-
-    currentPlayMethod = options?.playMethod ?? "DirectStream";
     currentSessionId = options?.sessionId ?? null;
-    currentMediaSourceId = options?.mediaSourceId ?? null;
-    currentAudioStreamIndex = options?.audioStreamIndex;
-    currentSubtitleStreamIndex = options?.subtitleStreamIndex;
-    
+    // hasReportedStart stays true  → beginReporting will not send a new start
+    // reportingInterval stays alive → progress reports continue uninterrupted
 
-    // Fire-and-forget stop for the old transcoding session only.
     if (oldSessionId) {
       const api = getApi();
       if (api) {
@@ -71,7 +56,6 @@ export function prepareReporting(
               ItemId: itemId,
               PositionTicks: getPositionTicks(playerManager),
               PlaySessionId: oldSessionId,
-              MediaSourceId: oldMediaSourceId ?? undefined,
             },
           })
           .catch((err) =>
@@ -83,21 +67,13 @@ export function prepareReporting(
       }
     }
 
-    console.log(
-      "[PlaybackReporter] Stream updated (same item):",
-      itemId,
-      options?.playMethod,
-    );
+    console.log("[PlaybackReporter] Stream updated (same item):", itemId);
   } else {
-    // Different item — full teardown of the previous session then fresh state.
+    // Different item — full teardown then fresh state.
     stopReporting(playerManager);
 
     currentItemId = itemId;
-    currentPlayMethod = options?.playMethod ?? "DirectStream";
     currentSessionId = options?.sessionId ?? null;
-    currentMediaSourceId = options?.mediaSourceId ?? null;
-    currentAudioStreamIndex = options?.audioStreamIndex;
-    currentSubtitleStreamIndex = options?.subtitleStreamIndex;
     hasReportedStart = false;
   }
 }
@@ -130,11 +106,7 @@ export function stopReporting(playerManager?: framework.PlayerManager): void {
   }
 
   currentItemId = null;
-  currentPlayMethod = "DirectStream";
   currentSessionId = null;
-  currentMediaSourceId = null;
-  currentAudioStreamIndex = undefined;
-  currentSubtitleStreamIndex = undefined;
   hasReportedStart = false;
 }
 
@@ -146,28 +118,18 @@ async function reportPlaybackStart(
   if (!api || hasReportedStart) return;
 
   try {
-    const playStateApi = getPlaystateApi(api);
-
-    await playStateApi.reportPlaybackStart({
+    await getPlaystateApi(api).reportPlaybackStart({
       playbackStartInfo: {
         ItemId: itemId,
         PositionTicks: getPositionTicks(playerManager),
-        PlayMethod: currentPlayMethod,
         PlaySessionId: currentSessionId ?? itemId,
-        MediaSourceId: currentMediaSourceId ?? undefined,
-        AudioStreamIndex: currentAudioStreamIndex,
-        SubtitleStreamIndex: currentSubtitleStreamIndex,
         VolumeLevel: Math.floor(lastVolume.level * 100),
         IsMuted: lastVolume.muted,
       },
     });
 
     hasReportedStart = true;
-    console.log(
-      "[PlaybackReporter] Reported playback start:",
-      itemId,
-      currentPlayMethod,
-    );
+    console.log("[PlaybackReporter] Reported playback start:", itemId);
   } catch (error) {
     console.error("[PlaybackReporter] Failed to report start:", error);
   }
@@ -184,18 +146,12 @@ async function reportPlaybackProgress(
   if (state === "IDLE") return;
 
   try {
-    const playStateApi = getPlaystateApi(api);
-
-    await playStateApi.reportPlaybackProgress({
+    await getPlaystateApi(api).reportPlaybackProgress({
       playbackProgressInfo: {
         ItemId: itemId,
         PositionTicks: getPositionTicks(playerManager),
         IsPaused: state === "PAUSED",
-        PlayMethod: currentPlayMethod,
         PlaySessionId: currentSessionId ?? itemId,
-        MediaSourceId: currentMediaSourceId ?? undefined,
-        AudioStreamIndex: currentAudioStreamIndex,
-        SubtitleStreamIndex: currentSubtitleStreamIndex,
         VolumeLevel: Math.floor(lastVolume.level * 100),
         IsMuted: lastVolume.muted,
       },
@@ -213,14 +169,11 @@ async function reportPlaybackStopped(
   if (!api) return;
 
   try {
-    const playStateApi = getPlaystateApi(api);
-
-    await playStateApi.reportPlaybackStopped({
+    await getPlaystateApi(api).reportPlaybackStopped({
       playbackStopInfo: {
         ItemId: itemId,
         PositionTicks: getPositionTicks(playerManager),
         PlaySessionId: currentSessionId ?? itemId,
-        MediaSourceId: currentMediaSourceId ?? undefined,
       },
     });
 

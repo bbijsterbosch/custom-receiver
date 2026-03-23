@@ -144,12 +144,10 @@ export function initializeReceiver(): void {
         };
       }
       // Store session info now, but delay the actual report until PLAYING fires.
+      // Jellyfin already knows PlayMethod/MediaSourceId/stream indexes from the
+      // PlaySessionId it created — we only need to track position and state.
       prepareReporting(customData.Id, playerManager, {
         sessionId: stream.sessionId,
-        mediaSourceId: stream.mediaSourceId,
-        playMethod: stream.playMethod,
-        audioStreamIndex: customData.audioStreamIndex,
-        subtitleStreamIndex: customData.subtitleStreamIndex,
       });
 
       hideIdleScreen();
