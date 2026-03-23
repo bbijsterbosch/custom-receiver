@@ -176,8 +176,12 @@ export function initializeReceiver(): void {
   // When playback stops, stop reporting and show the idle screen.
   playerManager.addEventListener(
     cast.framework.events.EventType.MEDIA_FINISHED,
-    () => {
-      console.log("[Receiver] Media finished");
+    (event: { endedReason?: string }) => {
+      // "INTERRUPTED" means a new LOAD replaced this media (e.g. quality change).
+      // The LOAD interceptor already called prepareReporting — don't wipe that state.
+      if (event.endedReason === "INTERRUPTED") return;
+
+      console.log("[Receiver] Media finished:", event.endedReason);
       stopReporting(playerManager);
       startCycling();
       showIdleScreen();
