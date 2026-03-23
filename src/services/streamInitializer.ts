@@ -118,8 +118,8 @@ export async function initializeStream(
       );
     } else if (transcodingUrl) {
       url = `${api.basePath}${transcodingUrl}`;
-      playMethod =
-        videoTranscoded || audioTranscoded ? "Transcode" : "DirectStream";
+      // Audio-only transcode is still DirectStream — video is copied as-is.
+      playMethod = videoTranscoded ? "Transcode" : "DirectStream";
       console.log(
         `[StreamInitializer] ${playMethod} — video: ${videoTranscoded ? "transcode" : "copy"}, audio: ${audioTranscoded ? "transcode" : "copy"}, reasons: ${transcodeReasons.join(", ") || "none"}`,
       );

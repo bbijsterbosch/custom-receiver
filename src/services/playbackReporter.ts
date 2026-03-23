@@ -25,6 +25,15 @@ export function updateVolume(level: number, muted: boolean): void {
 /**
  * Store session metadata after stream init but wait with reporting until playback actually starts.
  * Call this from the LOAD interceptor. Does NOT send any reports yet.
+ *
+ * Same item (bitrate / audio / subtitle change):
+ *   - Fires a stop for the old Jellyfin transcoding session so the server kills
+ *     the old transcode job, then swaps in the new parameters.
+ *   - Does NOT reset hasReportedStart or clear the interval — the watch session
+ *     continues uninterrupted from Jellyfin's perspective.
+ *
+ * Different item:
+ *   - Full stop (PlaybackStopped sent, interval cleared) then fresh state.
  */
 export function prepareReporting(
   itemId: string,
@@ -37,15 +46,62 @@ export function prepareReporting(
     subtitleStreamIndex?: number;
   },
 ): void {
-  stopReporting(playerManager);
+  const isSameItem = currentItemId === itemId;
 
-  currentItemId = itemId;
-  currentPlayMethod = options?.playMethod ?? "DirectStream";
-  currentSessionId = options?.sessionId ?? null;
-  currentMediaSourceId = options?.mediaSourceId ?? null;
-  currentAudioStreamIndex = options?.audioStreamIndex;
-  currentSubtitleStreamIndex = options?.subtitleStreamIndex;
-  hasReportedStart = false;
+  if (isSameItem) {
+    // Quality / stream change on the same item.
+    // Stop the old Jellyfin transcoding session so the server can clean it up,
+    // but capture the old values first since we're about to overwrite them.
+    const oldSessionId = currentSessionId;
+    const oldMediaSourceId = currentMediaSourceId;
+
+    currentPlayMethod = options?.playMethod ?? "DirectStream";
+    currentSessionId = options?.sessionId ?? null;
+    currentMediaSourceId = options?.mediaSourceId ?? null;
+    currentAudioStreamIndex = options?.audioStreamIndex;
+    currentSubtitleStreamIndex = options?.subtitleStreamIndex;
+    // hasReportedStart stays true  → beginReporting will not send a new start
+    // reportingInterval stays alive → progress reports continue uninterrupted
+
+    // Fire-and-forget stop for the old transcoding session only.
+    if (oldSessionId) {
+      const api = getApi();
+      if (api) {
+        getPlaystateApi(api)
+          .reportPlaybackStopped({
+            playbackStopInfo: {
+              ItemId: itemId,
+              PositionTicks: getPositionTicks(playerManager),
+              PlaySessionId: oldSessionId,
+              MediaSourceId: oldMediaSourceId ?? undefined,
+            },
+          })
+          .catch((err) =>
+            console.error(
+              "[PlaybackReporter] Failed to stop old transcode session:",
+              err,
+            ),
+          );
+      }
+    }
+
+    console.log(
+      "[PlaybackReporter] Stream updated (same item):",
+      itemId,
+      options?.playMethod,
+    );
+  } else {
+    // Different item — full teardown of the previous session then fresh state.
+    stopReporting(playerManager);
+
+    currentItemId = itemId;
+    currentPlayMethod = options?.playMethod ?? "DirectStream";
+    currentSessionId = options?.sessionId ?? null;
+    currentMediaSourceId = options?.mediaSourceId ?? null;
+    currentAudioStreamIndex = options?.audioStreamIndex;
+    currentSubtitleStreamIndex = options?.subtitleStreamIndex;
+    hasReportedStart = false;
+  }
 }
 
 /**
