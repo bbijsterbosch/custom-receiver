@@ -127,14 +127,12 @@ export function initializeReceiver(): void {
 
       // Set poster image so the CAF player shows it while buffering.
       const creds = getCredentials();
-      const posterTag = customData.ImageType?.Primary;
+      // const posterTag = customData.ImageType?.Primary;
       
-      if (creds && posterTag) {
+      if (creds) {
         const posterUrl = `${creds.serverUrl}/Items/${customData.Id}/Images/Primary?maxWidth=400&quality=90`;
         console.log('posterurl:', posterUrl)
         loadRequestData.media.metadata = {
-          metadataType: 0, // MetadataType.GENERIC
-          title: customData.Name ?? "",
           images: [{ url: posterUrl }],
         };
       }
