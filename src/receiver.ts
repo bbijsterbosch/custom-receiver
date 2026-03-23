@@ -24,11 +24,8 @@ const CREDENTIALS_TIMEOUT_MS = 10_000;
 
 let postersLoaded = false;
 
-// Tracks the current stream so quality changes can resume at the correct position.
-// HLS/remux streams report player time relative to stream start (not movie start),
-// so we store the movie-time offset of the current stream here.
+// Tracks the current item so quality/audio/subtitle changes can resume at the correct position.
 let lastLoadedItemId: string | null = null;
-let currentStreamStartTicks = 0;
 
 // Resolved once credentials have been received so the LOAD interceptor can
 // wait for them rather than racing against the custom-channel message.
@@ -126,17 +123,15 @@ export function initializeReceiver(): void {
       }
 
       // For quality / audio / subtitle changes on the same item, the sender's
-      // startTimeTicks may be stale (original load position). Calculate the real
-      // current movie position instead:
-      
+      // startTimeTicks may be stale (original load position). Use the player's
+      // current position instead — it's already movie-relative for all stream types.
       const isQualityChange =
         lastLoadedItemId === customData.Id &&
         playerManager.getPlayerState() !==
           cast.framework.messages.PlayerState.IDLE;
 
       const startTimeTicks = isQualityChange
-        ? currentStreamStartTicks +
-          Math.floor(playerManager.getCurrentTimeSec() * 10_000_000)
+        ? Math.floor(playerManager.getCurrentTimeSec() * 10_000_000)
         : (customData.startTimeTicks ?? 0);
 
       const streamCustomData: ReceiverCustomData = {
@@ -157,18 +152,16 @@ export function initializeReceiver(): void {
       loadRequestData.media.contentType = stream.contentType;
 
       // Set the player start position.
-      loadRequestData.currentTime =
-        stream.playMethod === "DirectPlay" ? startTimeTicks / 10_000_000 : 0;
+      // Jellyfin HLS timestamps are movie-relative, same as DirectPlay.
+      loadRequestData.currentTime = startTimeTicks / 10_000_000;
 
-      // Record tracking state for the next quality change on this item.
+      // Record item ID for quality-change detection on the next load.
       lastLoadedItemId = streamCustomData.Id;
-      currentStreamStartTicks =
-        stream.playMethod === "DirectPlay" ? 0 : startTimeTicks;
 
       // Set poster image so the CAF player shows it while buffering.
       const creds = getCredentials();
       if (creds) {
-        const posterUrl = `${creds.serverUrl}/Items/${streamCustomData.Id}/Images/Primary?maxWidth=400&quality=90`;
+        const posterUrl = `${creds.serverUrl}/Items/${streamCustomData.SeasonId}/Images/Primary?maxWidth=400&quality=90`;
         loadRequestData.media.metadata = {
           ...((loadRequestData.media.metadata as object) ?? {}),
           images: [{ url: posterUrl }],
@@ -266,7 +259,6 @@ export function initializeReceiver(): void {
         clearApi();
         postersLoaded = false;
         lastLoadedItemId = null;
-        currentStreamStartTicks = 0;
         credentialsReady = false;
         credentialsPromise = new Promise<void>((resolve) => {
           resolveCredentials = resolve;
