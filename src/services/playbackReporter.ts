@@ -50,8 +50,7 @@ export function prepareReporting(
 
   if (isSameItem) {
     // Quality / stream change on the same item.
-    // Stop the old Jellyfin transcoding session so the server can clean it up,
-    // but capture the old values first since we're about to overwrite them.
+    
     const oldSessionId = currentSessionId;
     const oldMediaSourceId = currentMediaSourceId;
 
@@ -60,8 +59,7 @@ export function prepareReporting(
     currentMediaSourceId = options?.mediaSourceId ?? null;
     currentAudioStreamIndex = options?.audioStreamIndex;
     currentSubtitleStreamIndex = options?.subtitleStreamIndex;
-    // hasReportedStart stays true  → beginReporting will not send a new start
-    // reportingInterval stays alive → progress reports continue uninterrupted
+    
 
     // Fire-and-forget stop for the old transcoding session only.
     if (oldSessionId) {
