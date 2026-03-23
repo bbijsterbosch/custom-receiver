@@ -72,7 +72,7 @@ export async function initializeStream(
       if (sessionId) params.append("playSessionId", sessionId);
       url = `${api.basePath}/Videos/${customData.Id}/stream.${mediaSource?.Container ?? "mp4"}?${params}`;
       playMethod = "DirectPlay";
-      console.log("[StreamInitializer] Direct play:", url);
+      console.log("[StreamInitializer] Direct play:", url.replace(/([?&]api_key=)[^&]+/, "$1***"));
     } else {
       // DirectStream — use the transcodingUrl if available (remux), else build manually
       url = transcodingUrl
@@ -85,12 +85,16 @@ export async function initializeStream(
             },
           )}`;
       playMethod = "DirectStream";
-      console.log("[StreamInitializer] Direct stream:", url);
+      console.log("[StreamInitializer] Direct stream:", url.replace(/([?&]api_key=)[^&]+/, "$1***"));
     }
+
+    const contentType = url.includes(".m3u8")
+      ? "application/x-mpegURL"
+      : "video/mp4";
 
     return {
       url,
-      contentType: "video/mp4",
+      contentType,
       sessionId,
       mediaSourceId: mediaSource?.Id ?? null,
       transcodingUrl,

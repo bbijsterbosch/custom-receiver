@@ -5,7 +5,7 @@ import {
   stopCycling,
   startCycling,
 } from "./idleScreen";
-import { clearApi, initializeApi } from "./services/jellyfinApi";
+import { clearApi, getCredentials, initializeApi } from "./services/jellyfinApi";
 import {
   beginReporting,
   prepareReporting,
@@ -16,6 +16,7 @@ import { initializeStream } from "./services/streamInitializer";
 import type { JellyfinCredentials, ReceiverCustomData } from "./types";
 
 const CREDENTIALS_NAMESPACE = "urn:x-cast:streamyfin";
+const CREDENTIALS_TIMEOUT_MS = 10_000;
 
 let postersLoaded = false;
 
@@ -43,6 +44,13 @@ export function initializeReceiver(): void {
             : (raw as JellyfinCredentials);
 
         if (creds?.serverUrl && creds?.accessToken && creds?.userId) {
+          try {
+            new URL(creds.serverUrl);
+          } catch {
+            console.warn("[Receiver] Invalid serverUrl in credentials — ignoring");
+            return;
+          }
+
           console.log("[Receiver] Credentials received via channel");
           initializeApi(creds);
 
@@ -89,7 +97,20 @@ export function initializeReceiver(): void {
       // Wait for credentials if they haven't arrived yet.
       if (!credentialsReady) {
         console.log("[Receiver] Waiting for credentials before stream init...");
-        await credentialsPromise;
+        try {
+          await Promise.race([
+            credentialsPromise,
+            new Promise<never>((_, reject) =>
+              setTimeout(
+                () => reject(new Error("Timed out waiting for credentials")),
+                CREDENTIALS_TIMEOUT_MS,
+              ),
+            ),
+          ]);
+        } catch (err) {
+          console.error("[Receiver] Stream init aborted:", err);
+          return loadRequestData;
+        }
       }
 
       // Ask Jellyfin for the stream URL using the receiver's own API.
@@ -104,11 +125,23 @@ export function initializeReceiver(): void {
       loadRequestData.media.contentUrl = stream.url;
       loadRequestData.media.contentType = stream.contentType;
 
+      // Set poster image so the CAF player shows it while buffering.
+      const creds = getCredentials();
+      const posterTag = customData.ImageTags?.Primary;
+      if (creds && posterTag) {
+        const posterUrl = `${creds.serverUrl}/Items/${customData.Id}/Images/Primary?maxWidth=400&quality=90&tag=${posterTag}`;
+        loadRequestData.media.metadata = {
+          metadataType: 0, // MetadataType.GENERIC
+          title: customData.Name ?? "",
+          images: [{ url: posterUrl }],
+        };
+      }
+
       // Store session info now, but delay the actual report until PLAYING fires.
       prepareReporting(customData.Id, playerManager, {
         sessionId: stream.sessionId,
         mediaSourceId: stream.mediaSourceId,
-        playMethod: stream.transcodingUrl ? "Transcode" : "DirectStream",
+        playMethod: stream.playMethod,
         audioStreamIndex: customData.audioStreamIndex,
         subtitleStreamIndex: customData.subtitleStreamIndex,
       });
@@ -145,6 +178,7 @@ export function initializeReceiver(): void {
     cast.framework.events.EventType.MEDIA_FINISHED,
     () => {
       console.log("[Receiver] Media finished");
+      stopReporting(playerManager);
       startCycling();
       showIdleScreen();
       if (!postersLoaded) loadBackdrops();
@@ -193,6 +227,7 @@ export function initializeReceiver(): void {
       if (senderCount === 0) {
         stopReporting(playerManager);
         clearApi();
+        postersLoaded = false;
         credentialsReady = false;
         credentialsPromise = new Promise<void>((resolve) => {
           resolveCredentials = resolve;

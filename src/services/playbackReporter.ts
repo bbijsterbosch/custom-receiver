@@ -23,7 +23,7 @@ export function updateVolume(level: number, muted: boolean): void {
 }
 
 /**
- * Store session metadata after stream init but before playback actually starts.
+ * Store session metadata after stream init but wait with reporting until playback actually starts.
  * Call this from the LOAD interceptor. Does NOT send any reports yet.
  */
 export function prepareReporting(
