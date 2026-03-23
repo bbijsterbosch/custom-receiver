@@ -2,10 +2,14 @@ import {
   hideIdleScreen,
   loadBackdrops,
   showIdleScreen,
-  stopCycling,
   startCycling,
+  stopCycling,
 } from "./idleScreen";
-import { clearApi, getCredentials, initializeApi } from "./services/jellyfinApi";
+import {
+  clearApi,
+  getCredentials,
+  initializeApi,
+} from "./services/jellyfinApi";
 import {
   beginReporting,
   prepareReporting,
@@ -47,7 +51,9 @@ export function initializeReceiver(): void {
           try {
             new URL(creds.serverUrl);
           } catch {
-            console.warn("[Receiver] Invalid serverUrl in credentials — ignoring");
+            console.warn(
+              "[Receiver] Invalid serverUrl in credentials — ignoring",
+            );
             return;
           }
 
@@ -128,15 +134,15 @@ export function initializeReceiver(): void {
       // Set poster image so the CAF player shows it while buffering.
       const creds = getCredentials();
       // const posterTag = customData.ImageType?.Primary;
-      
+
+      // if (creds) {
       if (creds) {
-        const posterUrl = `${creds.serverUrl}/Items/${customData.Id}/Images/Primary?maxWidth=400&quality=90`;
-        console.log('posterurl:', posterUrl)
+        const posterUrl = `${creds.serverUrl}/Items/${customData.SeasonId}/Images/Primary?maxWidth=400&quality=90`;
         loadRequestData.media.metadata = {
+          ...((loadRequestData.media.metadata as object) ?? {}),
           images: [{ url: posterUrl }],
         };
       }
-
       // Store session info now, but delay the actual report until PLAYING fires.
       prepareReporting(customData.Id, playerManager, {
         sessionId: stream.sessionId,
@@ -193,7 +199,7 @@ export function initializeReceiver(): void {
   playerManager.addEventListener(
     cast.framework.events.EventType.REQUEST_STOP,
     () => {
-            console.log("[Receiver] Stop requested");
+      console.log("[Receiver] Stop requested");
     },
   );
 

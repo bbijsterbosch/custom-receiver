@@ -34,7 +34,9 @@ function parseTranscodeReasons(relativeUrl: string | null): string[] {
   if (!relativeUrl) return [];
   const q = relativeUrl.indexOf("?");
   if (q === -1) return [];
-  const raw = new URLSearchParams(relativeUrl.slice(q + 1)).get("TranscodeReasons");
+  const raw = new URLSearchParams(relativeUrl.slice(q + 1)).get(
+    "TranscodeReasons",
+  );
   return raw ? raw.split(",") : [];
 }
 
@@ -74,7 +76,7 @@ export async function initializeStream(
           isPlayback: true,
           autoOpenLiveStream: true,
           maxStreamingBitrate: customData.maxStreamingBitrate,
-          mediaSourceId: customData.mediaSourceId
+          mediaSourceId: customData.mediaSourceId,
         },
       },
     );
@@ -94,8 +96,12 @@ export async function initializeStream(
     // Derive video/audio transcoding separately from the TranscodeReasons param
     // embedded in the transcoding URL — more reliable than SupportsDirectStream.
     const transcodeReasons = parseTranscodeReasons(transcodingUrl);
-    const videoTranscoded = transcodeReasons.some((r) => VIDEO_TRANSCODE_REASONS.has(r));
-    const audioTranscoded = transcodeReasons.some((r) => AUDIO_TRANSCODE_REASONS.has(r));
+    const videoTranscoded = transcodeReasons.some((r) =>
+      VIDEO_TRANSCODE_REASONS.has(r),
+    );
+    const audioTranscoded = transcodeReasons.some((r) =>
+      AUDIO_TRANSCODE_REASONS.has(r),
+    );
 
     if (supportsDirectPlay) {
       const params = new URLSearchParams({
@@ -106,22 +112,31 @@ export async function initializeStream(
       if (sessionId) params.append("playSessionId", sessionId);
       url = `${api.basePath}/Videos/${customData.Id}/stream.${mediaSource?.Container ?? "mp4"}?${params}`;
       playMethod = "DirectPlay";
-      console.log("[StreamInitializer] Direct play:", url.replace(/([?&]api_key=)[^&]+/, "$1***"));
+      console.log(
+        "[StreamInitializer] Direct play:",
+        url.replace(/([?&]api_key=)[^&]+/, "$1***"),
+      );
     } else if (transcodingUrl) {
       url = `${api.basePath}${transcodingUrl}`;
-      playMethod = videoTranscoded || audioTranscoded ? "Transcode" : "DirectStream";
+      playMethod =
+        videoTranscoded || audioTranscoded ? "Transcode" : "DirectStream";
       console.log(
         `[StreamInitializer] ${playMethod} — video: ${videoTranscoded ? "transcode" : "copy"}, audio: ${audioTranscoded ? "transcode" : "copy"}, reasons: ${transcodeReasons.join(", ") || "none"}`,
       );
     } else {
       // No transcoding URL — build a direct stream URL manually
-      url = `${api.basePath}/Videos/${customData.Id}/stream?${new URLSearchParams({
-        static: "true",
-        mediaSourceId: mediaSource?.Id ?? customData.Id,
-        api_key: api.accessToken,
-      })}`;
+      url = `${api.basePath}/Videos/${customData.Id}/stream?${new URLSearchParams(
+        {
+          static: "true",
+          mediaSourceId: mediaSource?.Id ?? customData.Id,
+          api_key: api.accessToken,
+        },
+      )}`;
       playMethod = "DirectStream";
-      console.log("[StreamInitializer] Direct stream (manual):", url.replace(/([?&]api_key=)[^&]+/, "$1***"));
+      console.log(
+        "[StreamInitializer] Direct stream (manual):",
+        url.replace(/([?&]api_key=)[^&]+/, "$1***"),
+      );
     }
 
     const contentType = url.includes(".m3u8")
