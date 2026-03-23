@@ -3,6 +3,31 @@ import { getDeviceProfile } from "../deviceProfiles";
 import type { ReceiverCustomData } from "../types";
 import { getApi, getCredentials } from "./jellyfinApi";
 
+// Reasons that require actual codec re-encoding (vs container remux = DirectStream).
+// TranscodeReasons is returned by the Jellyfin API but not typed in this SDK version.
+const CODEC_TRANSCODE_REASONS = new Set([
+  "VideoCodecNotSupported",
+  "AudioCodecNotSupported",
+  "VideoProfileNotSupported",
+  "VideoLevelNotSupported",
+  "VideoResolutionNotSupported",
+  "VideoBitDepthNotSupported",
+  "VideoFramerateNotSupported",
+  "RefFramesNotSupported",
+  "AnamorphicVideoNotSupported",
+  "InterlacedVideoNotSupported",
+  "AudioChannelsNotSupported",
+  "AudioProfileNotSupported",
+  "AudioSampleRateNotSupported",
+  "AudioBitDepthNotSupported",
+  "VideoBitrateNotSupported",
+  "AudioBitrateNotSupported",
+  "UnknownVideoStreamInfo",
+  "UnknownAudioStreamInfo",
+  "VideoRangeTypeNotSupported",
+  "VideoCodecTagNotSupported",
+]);
+
 export interface StreamInfo {
   url: string;
   contentType: string;
@@ -54,12 +79,12 @@ export async function initializeStream(
     let playMethod: StreamInfo["playMethod"];
 
     const supportsDirectPlay = mediaSource?.SupportsDirectPlay ?? false;
-    const supportsDirectStream = mediaSource?.SupportsDirectStream ?? false;
-    const isActualTranscode = !supportsDirectPlay && !supportsDirectStream;
+    // TranscodeReasons is not typed in this SDK version — access via cast
+    const transcodeReasons =
+      ((mediaSource as Record<string, unknown>)?.TranscodeReasons as string[] | null | undefined) ?? [];
+    const isActualTranscode = transcodeReasons.some((r) => CODEC_TRANSCODE_REASONS.has(r));
 
-    // This logic is not correct yet but it works for now. 
-    // (supportsDirectstream is always false even when it should be true)
-    if (transcodingUrl && isActualTranscode) {
+    if (transcodingUrl && !supportsDirectPlay && isActualTranscode) {
       url = `${api.basePath}${transcodingUrl}`;
       playMethod = "Transcode";
       console.log("[StreamInitializer] Transcoded stream:", url);
