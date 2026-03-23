@@ -4,7 +4,7 @@ import type { ReceiverCustomData } from "../types";
 import { getApi, getCredentials } from "./jellyfinApi";
 
 // Reasons that require actual codec re-encoding (vs container remux = DirectStream).
-// TranscodeReasons is returned by the Jellyfin API but not typed in this SDK version.
+// Parsed from the TranscodeReasons query parameter in the transcoding URL.
 const CODEC_TRANSCODE_REASONS = new Set([
   "VideoCodecNotSupported",
   "AudioCodecNotSupported",
@@ -27,6 +27,14 @@ const CODEC_TRANSCODE_REASONS = new Set([
   "VideoRangeTypeNotSupported",
   "VideoCodecTagNotSupported",
 ]);
+
+function parseTranscodeReasons(relativeUrl: string | null): string[] {
+  if (!relativeUrl) return [];
+  const q = relativeUrl.indexOf("?");
+  if (q === -1) return [];
+  const raw = new URLSearchParams(relativeUrl.slice(q + 1)).get("TranscodeReasons");
+  return raw ? raw.split(",") : [];
+}
 
 export interface StreamInfo {
   url: string;
@@ -71,23 +79,22 @@ export async function initializeStream(
     const mediaSource = res.data.MediaSources?.[0];
     const transcodingUrl = mediaSource?.TranscodingUrl ?? null;
     console.log(
-      "[StreamInitializer] Media source:",
+      "[StreamInitializer] Media source — directPlay:",
       mediaSource?.SupportsDirectPlay,
-      mediaSource?.SupportsDirectStream,
     );
     let url: string;
     let playMethod: StreamInfo["playMethod"];
 
     const supportsDirectPlay = mediaSource?.SupportsDirectPlay ?? false;
-    // TranscodeReasons is not typed in this SDK version — access via cast
-    const transcodeReasons =
-      ((mediaSource as Record<string, unknown>)?.TranscodeReasons as string[] | null | undefined) ?? [];
+    // Derive play method from the TranscodeReasons embedded in the transcoding URL —
+    // more reliable than SupportsDirectStream which Jellyfin often reports incorrectly.
+    const transcodeReasons = parseTranscodeReasons(transcodingUrl);
     const isActualTranscode = transcodeReasons.some((r) => CODEC_TRANSCODE_REASONS.has(r));
 
     if (transcodingUrl && !supportsDirectPlay && isActualTranscode) {
       url = `${api.basePath}${transcodingUrl}`;
       playMethod = "Transcode";
-      console.log("[StreamInitializer] Transcoded stream:", url);
+      console.log("[StreamInitializer] Transcoded stream, reasons:", transcodeReasons.join(", "));
     } else if (supportsDirectPlay) {
       const params = new URLSearchParams({
         static: "true",
