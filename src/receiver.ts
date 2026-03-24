@@ -125,10 +125,7 @@ export function initializeReceiver(): void {
       // For quality / audio / subtitle changes on the same item, the sender's
       // startTimeTicks may be stale (original load position). Use the player's
       // current position instead — it's already movie-relative for all stream types.
-      const isQualityChange =
-        lastLoadedItemId === customData.Id &&
-        playerManager.getPlayerState() !==
-          cast.framework.messages.PlayerState.IDLE;
+      const isQualityChange = lastLoadedItemId === customData.Id
 
       const startTimeTicks = isQualityChange
         ? Math.floor(playerManager.getCurrentTimeSec() * 10_000_000)
@@ -152,9 +149,8 @@ export function initializeReceiver(): void {
       loadRequestData.media.contentType = stream.contentType;
 
       // Set the player start position.
-      // Jellyfin HLS timestamps are movie-relative, same as DirectPlay.
       loadRequestData.currentTime = startTimeTicks / 10_000_000;
-
+      console.log(loadRequestData.currentTime)
       // Record item ID for quality-change detection on the next load.
       lastLoadedItemId = streamCustomData.Id;
 
