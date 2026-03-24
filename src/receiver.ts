@@ -25,7 +25,6 @@ const CREDENTIALS_TIMEOUT_MS = 10_000;
 let postersLoaded = false;
 
 // Tracks the current item so quality/audio/subtitle changes can resume at the correct position.
-let lastLoadedItemId: string | null = null;
 
 // Resolved once credentials have been received so the LOAD interceptor can
 // wait for them rather than racing against the custom-channel message.
@@ -242,7 +241,6 @@ export function initializeReceiver(): void {
         stopReporting(playerManager);
         clearApi();
         postersLoaded = false;
-        lastLoadedItemId = null;
         credentialsReady = false;
         credentialsPromise = new Promise<void>((resolve) => {
           resolveCredentials = resolve;
