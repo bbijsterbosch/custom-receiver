@@ -125,19 +125,10 @@ export function initializeReceiver(): void {
       // For quality / audio / subtitle changes on the same item, the sender's
       // startTimeTicks may be stale (original load position). Use the player's
       // current position instead — it's already movie-relative for all stream types.
-      const isQualityChange = lastLoadedItemId === customData.Id
-
-      const startTimeTicks = isQualityChange
-        ? Math.floor(playerManager.getCurrentTimeSec() * 10_000_000)
-        : (customData.startTimeTicks ?? 0);
-
-      const streamCustomData: ReceiverCustomData = {
-        ...customData,
-        startTimeTicks,
-      };
+    
 
       // Ask Jellyfin for the stream URL using the receiver's own API.
-      const stream = await initializeStream(streamCustomData);
+      const stream = await initializeStream(customData);
 
       if (!stream) {
         console.error("[Receiver] Stream initialization failed");
@@ -149,15 +140,12 @@ export function initializeReceiver(): void {
       loadRequestData.media.contentType = stream.contentType;
 
       // Set the player start position.
-      loadRequestData.currentTime = startTimeTicks / 10_000_000;
       console.log(loadRequestData.currentTime)
-      // Record item ID for quality-change detection on the next load.
-      lastLoadedItemId = streamCustomData.Id;
 
       // Set poster image so the CAF player shows it while buffering.
       const creds = getCredentials();
       if (creds) {
-        const posterUrl = `${creds.serverUrl}/Items/${streamCustomData.SeasonId}/Images/Primary?maxWidth=400&quality=90`;
+        const posterUrl = `${creds.serverUrl}/Items/${customData.SeasonId}/Images/Primary?maxWidth=400&quality=90`;
         loadRequestData.media.metadata = {
           ...((loadRequestData.media.metadata as object) ?? {}),
           images: [{ url: posterUrl }],
@@ -165,7 +153,7 @@ export function initializeReceiver(): void {
       }
 
       // Store session info now, but delay the actual report until PLAYING fires.
-      prepareReporting(streamCustomData.Id, playerManager, {
+      prepareReporting(customData.Id, playerManager, {
         sessionId: stream.sessionId,
       });
 
