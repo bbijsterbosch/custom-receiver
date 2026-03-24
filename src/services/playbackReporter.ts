@@ -22,10 +22,11 @@ export function updateVolume(level: number, muted: boolean): void {
  * playback actually starts. Call this from the LOAD interceptor.
  *
  * Same item (bitrate / audio / subtitle change):
- *   - Fires a stop for the old Jellyfin transcoding session so the server kills
- *     the old transcode job, then swaps in the new session ID.
- *   - Does NOT reset hasReportedStart or clear the interval — the watch session
- *     continues uninterrupted from Jellyfin's perspective.
+ *   - Swaps in the new session ID and resets hasReportedStart so that
+ *     beginReporting sends a PlaybackStart for the new session when PLAYING
+ *     fires. Jellyfin kills the old transcode job when getPlaybackInfo is
+ *     called, so no explicit stop is needed here.
+ *   - reportingInterval stays alive → no gap in progress reports.
  *
  * Different item:
  *   - Full stop (PlaybackStopped sent, interval cleared) then fresh state.
@@ -41,31 +42,9 @@ export function prepareReporting(
 
   if (isSameItem) {
     // Quality / stream change on the same item.
-    // Stop the old Jellyfin transcoding session so the server can clean it up.
-    const oldSessionId = currentSessionId;
     currentSessionId = options?.sessionId ?? null;
-    // hasReportedStart stays true  → beginReporting will not send a new start
+    hasReportedStart = false;
     // reportingInterval stays alive → progress reports continue uninterrupted
-
-    if (oldSessionId) {
-      const api = getApi();
-      if (api) {
-        getPlaystateApi(api)
-          .reportPlaybackStopped({
-            playbackStopInfo: {
-              ItemId: itemId,
-              PositionTicks: getPositionTicks(playerManager),
-              PlaySessionId: oldSessionId,
-            },
-          })
-          .catch((err) =>
-            console.error(
-              "[PlaybackReporter] Failed to stop old transcode session:",
-              err,
-            ),
-          );
-      }
-    }
 
     console.log("[PlaybackReporter] Stream updated (same item):", itemId);
   } else {
