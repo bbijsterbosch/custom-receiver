@@ -199,9 +199,8 @@ export function initializeReceiver(): void {
       // "INTERRUPTED" means a new LOAD replaced this media (e.g. quality change).
       // The LOAD interceptor already called prepareReporting — don't wipe that state.
       if (event.endedReason === "INTERRUPTED") return;
-
+      
       console.log("[Receiver] Media finished:", event.endedReason);
-      stopReporting(playerManager);
       startCycling();
       showIdleScreen();
       if (!postersLoaded) loadBackdrops();
@@ -212,6 +211,7 @@ export function initializeReceiver(): void {
   playerManager.addEventListener(
     cast.framework.events.EventType.REQUEST_STOP,
     () => {
+      stopReporting(playerManager);
       console.log("[Receiver] Stop requested");
     },
   );
