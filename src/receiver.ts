@@ -23,7 +23,11 @@ const CREDENTIALS_NAMESPACE = "urn:x-cast:streamyfin";
 const CREDENTIALS_TIMEOUT_MS = 10_000;
 
 let postersLoaded = false;
-let currentItemId: ReceiverCustomData["Id"] | null = null;// Tracks the current item so quality/audio/subtitle changes can resume at the correct position.
+// Tracks the current item and last known playback position so quality/audio/subtitle
+// changes can resume at the correct position. getCurrentTimeSec() returns 0 in the
+// LOAD interceptor because the player has already transitioned by then.
+let currentItemId: ReceiverCustomData["Id"] | null = null;
+let lastKnownTimeSec = 0;
 
 // Resolved once credentials have been received so the LOAD interceptor can
 // wait for them rather than racing against the custom-channel message.
@@ -100,11 +104,11 @@ export function initializeReceiver(): void {
         );
         return loadRequestData;
       }
-      //Might not be robost but if settings change(same itemId) not time is sent and take current time.
-      const itemId = customData.Id
-      if (itemId === currentItemId) {
-        loadRequestData.currentTime = playerManager.getCurrentTimeSec();
-        console.log('Settings Change', loadRequestData.currentTime)
+      if (customData.Id === currentItemId) {
+        loadRequestData.currentTime = lastKnownTimeSec;
+        console.log("[Receiver] Settings change — resuming at:", lastKnownTimeSec);
+      } else {
+        lastKnownTimeSec = 0;
       }
       // Wait for credentials if they haven't arrived yet.
       if (!credentialsReady) {
@@ -217,6 +221,13 @@ export function initializeReceiver(): void {
     () => {
       hideIdleScreen();
       stopCycling();
+    },
+  );
+
+  playerManager.addEventListener(
+    cast.framework.events.EventType.TIME_UPDATE,
+    () => {
+      lastKnownTimeSec = playerManager.getCurrentTimeSec() ?? 0;
     },
   );
 
