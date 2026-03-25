@@ -10,7 +10,7 @@ let lastVolume = { level: 1, muted: false };
 
 function getPositionTicks(playerManager: framework.PlayerManager): number {
   const currentTime = playerManager.getCurrentTimeSec() ?? 0;
-  return Math.floor(currentTime * 10_000_000);
+  return Math.floor(currentTime * 10000000);
 }
 
 export function updateVolume(level: number, muted: boolean): void {

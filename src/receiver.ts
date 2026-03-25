@@ -23,8 +23,7 @@ const CREDENTIALS_NAMESPACE = "urn:x-cast:streamyfin";
 const CREDENTIALS_TIMEOUT_MS = 10_000;
 
 let postersLoaded = false;
-
-// Tracks the current item so quality/audio/subtitle changes can resume at the correct position.
+let currentItemId: ReceiverCustomData["Id"] | null = null;// Tracks the current item so quality/audio/subtitle changes can resume at the correct position.
 
 // Resolved once credentials have been received so the LOAD interceptor can
 // wait for them rather than racing against the custom-channel message.
@@ -34,10 +33,11 @@ let credentialsPromise = new Promise<void>((resolve) => {
   resolveCredentials = resolve;
 });
 
+
 export function initializeReceiver(): void {
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
-
+  
   // ── Credentials ────────────────────────────────────────────────────────────
   context.addCustomMessageListener(
     CREDENTIALS_NAMESPACE,
@@ -94,14 +94,18 @@ export function initializeReceiver(): void {
       const customData = loadRequestData.media?.customData as
         | ReceiverCustomData
         | undefined;
-
       if (!customData?.Id) {
         console.warn(
           "[Receiver] No item ID in customData — skipping stream init",
         );
         return loadRequestData;
       }
-
+      //Might not be robost but if settings change(same itemId) not time is sent and take current time.
+      const itemId = customData.Id
+      if (itemId === currentItemId) {
+        loadRequestData.currentTime = playerManager.getCurrentTimeSec();
+        console.log('Settings Change', loadRequestData.currentTime)
+      }
       // Wait for credentials if they haven't arrived yet.
       if (!credentialsReady) {
         console.log("[Receiver] Waiting for credentials before stream init...");
@@ -127,6 +131,7 @@ export function initializeReceiver(): void {
     
 
       // Ask Jellyfin for the stream URL using the receiver's own API.
+      currentItemId = customData.Id
       const stream = await initializeStream(customData);
 
       if (!stream) {
