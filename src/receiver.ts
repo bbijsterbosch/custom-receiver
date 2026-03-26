@@ -39,20 +39,20 @@ let credentialsPromise = new Promise<void>((resolve) => {
 
 
 export function initializeReceiver(): void {
-  // Style subtitles
+  // Style subtitles to look like standard broadcast subtitles:
+  // white text, drop shadow for readability, no background bar.
   const textTrackStyle = new cast.framework.messages.TextTrackStyle();
-
-  textTrackStyle.backgroundColor = '#00000000'; // fully transparent
+  textTrackStyle.foregroundColor = '#FFFFFFFF';
+  textTrackStyle.backgroundColor = '#00000000';
+  textTrackStyle.windowColor = '#00000000';
+  textTrackStyle.windowType = cast.framework.messages.TextTrackWindowType.NONE;
   textTrackStyle.edgeType = cast.framework.messages.TextTrackEdgeType.DROP_SHADOW;
   textTrackStyle.edgeColor = '#000000FF';
-  textTrackStyle.foregroundColor = '#FFFFFFFF';
   textTrackStyle.fontScale = 1.0;
 
   // Init Receiver
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
-  
-  playerManager.getPreferredTextStyle()
   // ── Credentials ────────────────────────────────────────────────────────────
   context.addCustomMessageListener(
     CREDENTIALS_NAMESPACE,
@@ -170,6 +170,7 @@ export function initializeReceiver(): void {
         track.name = stream.subtitleTrack.name ?? "Subtitle";
         track.language = stream.subtitleTrack.language ?? "und";
         loadRequestData.media.tracks = [track];
+        loadRequestData.media.textTrackStyle = textTrackStyle;
         loadRequestData.activeTrackIds = [1];
         console.log("[Receiver] Subtitle track attached:", track.name);
       } else {

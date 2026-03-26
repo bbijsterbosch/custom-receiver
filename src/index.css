@@ -21,6 +21,18 @@ cast-media-player {
   --overlay-background-color: rgba(0, 0, 0, 0.6);
 }
 
+/* Strip all backgrounds from subtitles — Jellyfin VTT files often embed
+   STYLE blocks that add black backgrounds to ::cue. Override everything. */
+::cue {
+  background: transparent !important;
+  background-color: transparent !important;
+  text-shadow:
+    -1px -1px 2px #000,
+     1px -1px 2px #000,
+    -1px  1px 2px #000,
+     1px  1px 2px #000;
+}
+
 #idle-screen {
   position: fixed;
   inset: 0;
