@@ -39,20 +39,21 @@ let credentialsPromise = new Promise<void>((resolve) => {
 
 
 export function initializeReceiver(): void {
-  // Style subtitles to look like standard broadcast subtitles:
-  // white text, drop shadow for readability, no background bar.
+  // Subtitle style: white text with black outline, no background.
   const textTrackStyle = new cast.framework.messages.TextTrackStyle();
   textTrackStyle.foregroundColor = '#FFFFFFFF';
   textTrackStyle.backgroundColor = '#00000000';
   textTrackStyle.windowColor = '#00000000';
   textTrackStyle.windowType = cast.framework.messages.TextTrackWindowType.NONE;
-  textTrackStyle.edgeType = cast.framework.messages.TextTrackEdgeType.DROP_SHADOW;
+  textTrackStyle.edgeType = cast.framework.messages.TextTrackEdgeType.OUTLINE;
   textTrackStyle.edgeColor = '#000000FF';
   textTrackStyle.fontScale = 1.0;
 
   // Init Receiver
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
+  playerManager.getTextTracksManager().setTextTrackStyle(textTrackStyle);
+
   // ── Credentials ────────────────────────────────────────────────────────────
   context.addCustomMessageListener(
     CREDENTIALS_NAMESPACE,
@@ -160,17 +161,33 @@ export function initializeReceiver(): void {
 
       // Attach external subtitle track if Jellyfin provided one.
       if (stream.subtitleTrack) {
+        // Fetch the VTT and strip any embedded STYLE blocks so the Cast SDK's
+        // TextTrackStyle (set via playerManager.setTextTrackStyle) takes over.
+        let trackUrl = stream.subtitleTrack.url;
+        try {
+          const vttResponse = await fetch(stream.subtitleTrack.url);
+          const vttText = await vttResponse.text();
+          const stripped = vttText
+            .split(/\n\n+/)
+            .filter((block) => !block.trimStart().startsWith("STYLE"))
+            .join("\n\n");
+          trackUrl = URL.createObjectURL(
+            new Blob([stripped], { type: "text/vtt" }),
+          );
+        } catch (err) {
+          console.warn("[Receiver] Failed to strip VTT styles, using raw URL:", err);
+        }
+
         const track = new cast.framework.messages.Track(
           1,
           cast.framework.messages.TrackType.TEXT,
         );
-        track.trackContentId = stream.subtitleTrack.url;
+        track.trackContentId = trackUrl;
         track.trackContentType = "text/vtt";
         track.subtype = cast.framework.messages.TextTrackType.SUBTITLES;
         track.name = stream.subtitleTrack.name ?? "Subtitle";
         track.language = stream.subtitleTrack.language ?? "und";
         loadRequestData.media.tracks = [track];
-        loadRequestData.media.textTrackStyle = textTrackStyle;
         loadRequestData.activeTrackIds = [1];
         console.log("[Receiver] Subtitle track attached:", track.name);
       } else {
