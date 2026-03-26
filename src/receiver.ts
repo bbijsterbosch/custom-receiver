@@ -52,6 +52,7 @@ export function initializeReceiver(): void {
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
   
+  playerManager.getPreferredTextStyle()
   // ── Credentials ────────────────────────────────────────────────────────────
   context.addCustomMessageListener(
     CREDENTIALS_NAMESPACE,
