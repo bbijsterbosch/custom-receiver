@@ -39,6 +39,16 @@ let credentialsPromise = new Promise<void>((resolve) => {
 
 
 export function initializeReceiver(): void {
+  // Style subtitles
+  const textTrackStyle = new cast.framework.messages.TextTrackStyle();
+
+  textTrackStyle.backgroundColor = '#00000000'; // fully transparent
+  textTrackStyle.edgeType = cast.framework.messages.TextTrackEdgeType.DROP_SHADOW;
+  textTrackStyle.edgeColor = '#000000FF';
+  textTrackStyle.foregroundColor = '#FFFFFFFF';
+  textTrackStyle.fontScale = 1.0;
+
+  // Init Receiver
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
   
