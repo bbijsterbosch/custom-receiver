@@ -52,7 +52,6 @@ export function initializeReceiver(): void {
   // Init Receiver
   const context = cast.framework.CastReceiverContext.getInstance();
   const playerManager = context.getPlayerManager();
-  playerManager.getTextTracksManager().setTextTrackStyle(textTrackStyle);
 
   // ── Credentials ────────────────────────────────────────────────────────────
   context.addCustomMessageListener(
@@ -188,6 +187,7 @@ export function initializeReceiver(): void {
         track.name = stream.subtitleTrack.name ?? "Subtitle";
         track.language = stream.subtitleTrack.language ?? "und";
         loadRequestData.media.tracks = [track];
+        loadRequestData.media.textTrackStyle = textTrackStyle;
         loadRequestData.activeTrackIds = [1];
         console.log("[Receiver] Subtitle track attached:", track.name);
       } else {
