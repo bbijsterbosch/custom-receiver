@@ -147,6 +147,25 @@ export function initializeReceiver(): void {
       loadRequestData.media.contentUrl = stream.url;
       loadRequestData.media.contentType = stream.contentType;
 
+      // Attach external subtitle track if Jellyfin provided one.
+      if (stream.subtitleTrack) {
+        const track = new cast.framework.messages.Track(
+          1,
+          cast.framework.messages.TrackType.TEXT,
+        );
+        track.trackContentId = stream.subtitleTrack.url;
+        track.trackContentType = "text/vtt";
+        track.subtype = cast.framework.messages.TextTrackType.SUBTITLES;
+        track.name = stream.subtitleTrack.name ?? "Subtitle";
+        track.language = stream.subtitleTrack.language ?? "und";
+        loadRequestData.media.tracks = [track];
+        loadRequestData.activeTrackIds = [1];
+        console.log("[Receiver] Subtitle track attached:", track.name);
+      } else {
+        loadRequestData.media.tracks = [];
+        loadRequestData.activeTrackIds = [];
+      }
+
       // Set the player start position.
       console.log(loadRequestData.currentTime)
 

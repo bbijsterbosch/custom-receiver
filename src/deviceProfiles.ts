@@ -83,7 +83,7 @@ const chromecast: DeviceProfile = {
       MaxAudioChannels: "2",
     },
   ],
-  SubtitleProfiles: [{ Format: "vtt", Method: "Encode" }],
+  SubtitleProfiles: [{ Format: "vtt", Method: "External" }],
 };
 
 const chromecastH265: DeviceProfile = {

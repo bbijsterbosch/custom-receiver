@@ -40,6 +40,13 @@ function parseTranscodeReasons(relativeUrl: string | null): string[] {
   return raw ? raw.split(",") : [];
 }
 
+export interface SubtitleTrackInfo {
+  url: string;
+  language: string | null;
+  name: string | null;
+  index: number;
+}
+
 export interface StreamInfo {
   url: string;
   contentType: string;
@@ -49,6 +56,7 @@ export interface StreamInfo {
   playMethod: "Transcode" | "DirectPlay" | "DirectStream";
   videoTranscoded: boolean;
   audioTranscoded: boolean;
+  subtitleTrack: SubtitleTrackInfo | null;
 }
 
 export async function initializeStream(
@@ -143,6 +151,28 @@ export async function initializeStream(
       ? "application/x-mpegURL"
       : "video/mp4";
 
+    // Build external subtitle track if one was requested.
+    // Jellyfin serves SubRip/text subtitles as VTT via a dedicated endpoint.
+    let subtitleTrack: SubtitleTrackInfo | null = null;
+    if (customData.subtitleStreamIndex !== undefined && mediaSource?.Id) {
+      const subtitleStream = mediaSource.MediaStreams?.find(
+        (s) => s.Index === customData.subtitleStreamIndex,
+      );
+      if (subtitleStream) {
+        const vttUrl =
+          `${api.basePath}/Videos/${customData.Id}/${mediaSource.Id}` +
+          `/Subtitles/${customData.subtitleStreamIndex}/0/Stream.vtt` +
+          `?api_key=${api.accessToken}`;
+        subtitleTrack = {
+          url: vttUrl,
+          language: subtitleStream.Language ?? null,
+          name: subtitleStream.DisplayTitle ?? subtitleStream.Language ?? null,
+          index: customData.subtitleStreamIndex,
+        };
+        console.log("[StreamInitializer] External subtitle:", subtitleStream.DisplayTitle, vttUrl.replace(/([?&]api_key=)[^&]+/, "$1***"));
+      }
+    }
+
     return {
       url,
       contentType,
@@ -152,6 +182,7 @@ export async function initializeStream(
       playMethod,
       videoTranscoded,
       audioTranscoded,
+      subtitleTrack,
     };
   } catch (error) {
     console.error("[StreamInitializer] getPlaybackInfo failed:", error);
