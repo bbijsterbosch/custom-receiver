@@ -51,9 +51,6 @@ export function initializeReceiver(): void {
 
   // Init Receiver
   const context = cast.framework.CastReceiverContext.getInstance();
-  let castReceiverOptions = new cast.framework.CastReceiverOptions();
-  castReceiverOptions.useShakaForHls = true;
-  context.start(castReceiverOptions);
   const playerManager = context.getPlayerManager();
 
   // ── Credentials ────────────────────────────────────────────────────────────
@@ -326,6 +323,7 @@ export function initializeReceiver(): void {
 
   const options = new cast.framework.CastReceiverOptions();
   options.disableIdleTimeout = false;
+  options.useShakaForHls = true;
 
   context.start(options);
   console.log("[Receiver] Streamyfin Cast Receiver started");
