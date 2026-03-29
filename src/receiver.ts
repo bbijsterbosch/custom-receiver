@@ -323,7 +323,7 @@ export function initializeReceiver(): void {
 
   const options = new cast.framework.CastReceiverOptions();
   options.disableIdleTimeout = false;
-
+  options.useShakaForHls = true
   context.start(options);
   console.log("[Receiver] Streamyfin Cast Receiver started");
 }
