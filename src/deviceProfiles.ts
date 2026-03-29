@@ -182,6 +182,21 @@ const chromecastH265: DeviceProfile = {
   SubtitleProfiles: [{ Format: "vtt", Method: "Encode" }],
 };
 
-export function getDeviceProfile(enableH265: boolean): DeviceProfile {
-  return enableH265 ? chromecastH265 : chromecast;
+let _h265Supported: boolean | null = null;
+
+function detectH265Support(): boolean {
+  if (_h265Supported !== null) return _h265Supported;
+  try {
+    _h265Supported =
+      MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L153.B0"') ||
+      MediaSource.isTypeSupported('video/mp4; codecs="hev1.1.6.L153.B0"');
+  } catch {
+    _h265Supported = false;
+  }
+  console.log(`[DeviceProfile] H265 supported: ${_h265Supported}`);
+  return _h265Supported;
+}
+
+export function getDeviceProfile(): DeviceProfile {
+  return detectH265Support() ? chromecastH265 : chromecast;
 }

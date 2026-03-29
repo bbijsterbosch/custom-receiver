@@ -77,7 +77,7 @@ export async function initializeStream(
         method: "POST",
         data: {
           userId: creds.userId,
-          deviceProfile: getDeviceProfile(customData.enableH265 ?? false),
+          deviceProfile: getDeviceProfile(),
           audioStreamIndex: customData.audioStreamIndex,
           subtitleStreamIndex: customData.subtitleStreamIndex,
           startTimeTicks: customData.startTimeTicks ?? 0,
