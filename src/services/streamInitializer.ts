@@ -1,5 +1,5 @@
 import { getMediaInfoApi } from "@jellyfin/sdk/lib/utils/api";
-import { getDeviceProfile } from "../deviceProfiles";
+import { getDeviceProfile, getMaxFramerate } from "../deviceProfiles";
 import type { ReceiverCustomData } from "../types";
 import { getApi, getCredentials } from "./jellyfinApi";
 
@@ -99,7 +99,19 @@ export async function initializeStream(
     let url: string;
     let playMethod: StreamInfo["playMethod"];
 
-    const supportsDirectPlay = mediaSource?.SupportsDirectPlay ?? false;
+    // Check framerate against the device's actual capability.
+    // Jellyfin's CodecProfile conditions aren't always respected, so we enforce
+    // the limit here using the real framerate from the stream metadata.
+    const videoStream = mediaSource?.MediaStreams?.find((s) => s.Type === "Video");
+    const frameRate = videoStream?.RealFrameRate ?? videoStream?.AverageFrameRate ?? 0;
+    const frameRateOk = frameRate === 0 || frameRate <= getMaxFramerate();
+    const supportsDirectPlay = (mediaSource?.SupportsDirectPlay ?? false) && frameRateOk;
+
+    if (!frameRateOk) {
+      console.log(
+        `[StreamInitializer] Framerate ${frameRate}fps exceeds device limit (${getMaxFramerate()}fps) — forcing transcode`,
+      );
+    }
 
     // Derive video/audio transcoding separately from the TranscodeReasons param
     // embedded in the transcoding URL — more reliable than SupportsDirectStream.

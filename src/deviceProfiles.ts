@@ -200,3 +200,8 @@ function detectH265Support(): boolean {
 export function getDeviceProfile(): DeviceProfile {
   return detectH265Support() ? chromecastH265 : chromecast;
 }
+
+/** Maximum framerate the current device supports for direct play. */
+export function getMaxFramerate(): number {
+  return detectH265Support() ? 60 : 30;
+}
