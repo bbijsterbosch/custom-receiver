@@ -4,17 +4,7 @@
  * can call getPlaybackInfo itself and get the correct stream URL.
  */
 
-interface DeviceProfile {
-  Name?: string;
-  MaxStreamingBitrate?: number;
-  MaxStaticBitrate?: number;
-  MusicStreamingTranscodingBitrate?: number;
-  CodecProfiles?: unknown[];
-  ContainerProfiles?: unknown[];
-  DirectPlayProfiles?: unknown[];
-  TranscodingProfiles?: unknown[];
-  SubtitleProfiles?: unknown[];
-}
+import type { DeviceProfile } from "@jellyfin/sdk/lib/generated-client/models";
 
 const chromecast: DeviceProfile = {
   Name: "Chromecast Video Profile",

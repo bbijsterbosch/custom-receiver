@@ -115,6 +115,12 @@ export function initializeReceiver(): void {
         );
         return loadRequestData;
       }
+      console.log("[Receiver] LOAD customData:", JSON.stringify({
+        Id: customData.Id,
+        audioStreamIndex: customData.audioStreamIndex,
+        subtitleStreamIndex: customData.subtitleStreamIndex,
+        maxStreamingBitrate: customData.maxStreamingBitrate,
+      }));
       if (customData.Id === currentItemId) {
         loadRequestData.currentTime = lastKnownTimeSec;
         console.log("[Receiver] Settings change — resuming at:", lastKnownTimeSec);
