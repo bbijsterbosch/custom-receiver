@@ -81,16 +81,16 @@ export async function initializeStream(
 
     const res = await getMediaInfoApi(api).getPostedPlaybackInfo({
       itemId: customData.Id,
-      userId: creds.userId,
-      maxStreamingBitrate: customData.maxStreamingBitrate,
-      startTimeTicks: customData.startTimeTicks ?? 0,
-      audioStreamIndex: customData.audioStreamIndex,
-      subtitleStreamIndex: customData.subtitleStreamIndex,
-      mediaSourceId: customData.mediaSourceId ?? undefined,
-      autoOpenLiveStream: true,
-      allowAudioStreamCopy: allowAudioCopy,
       playbackInfoDto: {
+        UserId: creds.userId,
         DeviceProfile: getDeviceProfile(),
+        AudioStreamIndex: customData.audioStreamIndex,
+        SubtitleStreamIndex: customData.subtitleStreamIndex,
+        MaxStreamingBitrate: customData.maxStreamingBitrate,
+        StartTimeTicks: customData.startTimeTicks ?? 0,
+        MediaSourceId: customData.mediaSourceId ?? undefined,
+        AutoOpenLiveStream: true,
+        AllowAudioStreamCopy: allowAudioCopy,
       },
     });
 
