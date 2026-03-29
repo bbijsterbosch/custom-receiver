@@ -162,9 +162,8 @@ export async function initializeStream(
         url.replace(/([?&]api_key=)[^&]+/, "$1***"),
       );
     } else if (transcodingUrl) {
-      // Jellyfin may ignore AudioStreamIndex in the PlaybackInfoDto body and
-      // default to the media source's preferred stream. Patch it directly in
-      // the URL — the HLS transcoder reads parameters from the URL per-segment.
+      // Jellyfin ignores AudioStreamIndex in the PlaybackInfoDto. Patch it directly in
+      // the URL.
       let patchedTranscodingUrl = transcodingUrl;
       if (
         customData.audioStreamIndex !== undefined &&

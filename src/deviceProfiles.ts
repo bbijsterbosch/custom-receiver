@@ -1,9 +1,3 @@
-/**
- * Jellyfin device profiles for the Chromecast receiver.
- * Copied from streamyfin/utils/profiles/chromecast(h265).ts so the receiver
- * can call getPlaybackInfo itself and get the correct stream URL.
- */
-
 import type { DeviceProfile } from "@jellyfin/sdk/lib/generated-client/models";
 
 const chromecast: DeviceProfile = {

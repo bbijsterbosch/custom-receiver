@@ -146,10 +146,6 @@ export function initializeReceiver(): void {
         }
       }
 
-      // For quality / audio / subtitle changes on the same item, the sender's
-      // startTimeTicks may be stale (original load position). Use the player's
-      // current position instead — it's already movie-relative for all stream types.
-    
 
       // Ask Jellyfin for the stream URL using the receiver's own API.
       currentItemId = customData.Id
