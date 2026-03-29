@@ -85,6 +85,7 @@ export async function initializeStream(
           autoOpenLiveStream: true,
           maxStreamingBitrate: customData.maxStreamingBitrate,
           mediaSourceId: customData.mediaSourceId,
+          allowAudioStreamCopy: customData.audioStreamIndex === undefined,
         },
       },
     );
