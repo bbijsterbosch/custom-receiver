@@ -22,7 +22,13 @@ const chromecast: DeviceProfile = {
   MaxStaticBitrate: 16000000,
   MusicStreamingTranscodingBitrate: 384000,
   CodecProfiles: [
-    { Type: "Video", Codec: "h264" },
+    {
+      Type: "Video",
+      Codec: "h264",
+      Conditions: [
+        { Condition: "LessThanEqual", Property: "VideoFramerate", Value: "30", IsRequired: false },
+      ],
+    },
     {
       Type: "Audio",
       Codec: "aac,mp3,flac,opus,vorbis",
@@ -99,7 +105,13 @@ const chromecastH265: DeviceProfile = {
   MaxStaticBitrate: 16000000,
   MusicStreamingTranscodingBitrate: 384000,
   CodecProfiles: [
-    { Type: "Video", Codec: "hevc,h264" },
+    {
+      Type: "Video",
+      Codec: "hevc,h264",
+      Conditions: [
+        { Condition: "LessThanEqual", Property: "VideoFramerate", Value: "60", IsRequired: false },
+      ],
+    },
     {
       Type: "Audio",
       Codec: "aac,mp3,flac,opus,vorbis",
