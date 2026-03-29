@@ -71,24 +71,20 @@ export async function initializeStream(
   }
 
   try {
-    const res = await getMediaInfoApi(api).getPlaybackInfo(
-      { itemId: customData.Id },
-      {
-        method: "POST",
-        data: {
-          userId: creds.userId,
-          deviceProfile: getDeviceProfile(),
-          audioStreamIndex: customData.audioStreamIndex,
-          subtitleStreamIndex: customData.subtitleStreamIndex,
-          startTimeTicks: customData.startTimeTicks ?? 0,
-          isPlayback: true,
-          autoOpenLiveStream: true,
-          maxStreamingBitrate: customData.maxStreamingBitrate,
-          mediaSourceId: customData.mediaSourceId,
-          allowAudioStreamCopy: customData.audioStreamIndex === undefined,
-        },
+    const res = await getMediaInfoApi(api).getPostedPlaybackInfo({
+      itemId: customData.Id,
+      userId: creds.userId,
+      maxStreamingBitrate: customData.maxStreamingBitrate,
+      startTimeTicks: customData.startTimeTicks ?? 0,
+      audioStreamIndex: customData.audioStreamIndex,
+      subtitleStreamIndex: customData.subtitleStreamIndex,
+      mediaSourceId: customData.mediaSourceId ?? undefined,
+      autoOpenLiveStream: true,
+      allowAudioStreamCopy: customData.audioStreamIndex === undefined,
+      playbackInfoDto: {
+        DeviceProfile: getDeviceProfile(),
       },
-    );
+    });
 
     const sessionId = res.data.PlaySessionId ?? null;
     const mediaSource = res.data.MediaSources?.[0];
