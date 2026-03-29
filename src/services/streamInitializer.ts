@@ -71,6 +71,14 @@ export async function initializeStream(
   }
 
   try {
+    const allowAudioCopy = customData.audioStreamIndex === undefined;
+    console.log("[StreamInitializer] Requesting playback info:", {
+      itemId: customData.Id,
+      audioStreamIndex: customData.audioStreamIndex,
+      subtitleStreamIndex: customData.subtitleStreamIndex,
+      allowAudioStreamCopy: allowAudioCopy,
+    });
+
     const res = await getMediaInfoApi(api).getPostedPlaybackInfo({
       itemId: customData.Id,
       userId: creds.userId,
@@ -80,7 +88,7 @@ export async function initializeStream(
       subtitleStreamIndex: customData.subtitleStreamIndex,
       mediaSourceId: customData.mediaSourceId ?? undefined,
       autoOpenLiveStream: true,
-      allowAudioStreamCopy: customData.audioStreamIndex === undefined,
+      allowAudioStreamCopy: allowAudioCopy,
       playbackInfoDto: {
         DeviceProfile: getDeviceProfile(),
       },
@@ -89,6 +97,20 @@ export async function initializeStream(
     const sessionId = res.data.PlaySessionId ?? null;
     const mediaSource = res.data.MediaSources?.[0];
     const transcodingUrl = mediaSource?.TranscodingUrl ?? null;
+
+    // Parse key params from the transcoding URL for debugging.
+    const urlDebugParams = (() => {
+      if (!transcodingUrl) return null;
+      const q = transcodingUrl.indexOf("?");
+      if (q === -1) return null;
+      const p = new URLSearchParams(transcodingUrl.slice(q + 1));
+      return {
+        AudioStreamIndex: p.get("AudioStreamIndex"),
+        AudioCodec: p.get("AudioCodec"),
+        VideoCodec: p.get("VideoCodec"),
+      };
+    })();
+
     console.log("[StreamInitializer] getPlaybackInfo result:", {
       directPlay: mediaSource?.SupportsDirectPlay,
       directStream: mediaSource?.SupportsDirectStream,
@@ -97,6 +119,7 @@ export async function initializeStream(
         ? transcodingUrl.replace(/([?&]api_key=)[^&]+/, "$1***")
         : null,
       container: mediaSource?.Container,
+      ...urlDebugParams,
     });
     let url: string;
     let playMethod: StreamInfo["playMethod"];
