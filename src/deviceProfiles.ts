@@ -39,10 +39,17 @@ const chromecast: DeviceProfile = {
       VideoCodec: "h264",
       AudioCodec: "aac,mp3,opus,vorbis",
     },
+    {
+      Container: "webm",
+      Type: "Video",
+      VideoCodec: "vp8",
+      AudioCodec: "vorbis,opus",
+    },
     { Container: "mp3", Type: "Audio" },
     { Container: "aac", Type: "Audio" },
     { Container: "flac", Type: "Audio" },
     { Container: "wav", Type: "Audio" },
+    { Container: "ogg", Type: "Audio" },
   ],
   TranscodingProfiles: [
     {
@@ -104,15 +111,22 @@ const chromecastH265: DeviceProfile = {
   ContainerProfiles: [],
   DirectPlayProfiles: [
     {
-      Container: "mp4,mkv",
+      Container: "mp4",
       Type: "Video",
       VideoCodec: "hevc,h264",
       AudioCodec: "aac,mp3,opus,vorbis",
+    },
+    {
+      Container: "webm",
+      Type: "Video",
+      VideoCodec: "vp9,vp8",
+      AudioCodec: "vorbis,opus",
     },
     { Container: "mp3", Type: "Audio" },
     { Container: "aac", Type: "Audio" },
     { Container: "flac", Type: "Audio" },
     { Container: "wav", Type: "Audio" },
+    { Container: "ogg", Type: "Audio" },
   ],
   TranscodingProfiles: [
     {
@@ -127,7 +141,7 @@ const chromecastH265: DeviceProfile = {
       BreakOnNonKeyFrames: true,
     },
     {
-      Container: "mp4,mkv",
+      Container: "mp4",
       Type: "Video",
       VideoCodec: "hevc,h264",
       AudioCodec: "aac",
