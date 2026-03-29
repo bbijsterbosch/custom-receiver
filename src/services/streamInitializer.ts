@@ -92,10 +92,15 @@ export async function initializeStream(
     const sessionId = res.data.PlaySessionId ?? null;
     const mediaSource = res.data.MediaSources?.[0];
     const transcodingUrl = mediaSource?.TranscodingUrl ?? null;
-    console.log(
-      "[StreamInitializer] Media source — directPlay:",
-      mediaSource?.SupportsDirectPlay,
-    );
+    console.log("[StreamInitializer] getPlaybackInfo result:", {
+      directPlay: mediaSource?.SupportsDirectPlay,
+      directStream: mediaSource?.SupportsDirectStream,
+      transcoding: mediaSource?.SupportsTranscoding,
+      transcodingUrl: transcodingUrl
+        ? transcodingUrl.replace(/([?&]api_key=)[^&]+/, "$1***")
+        : null,
+      container: mediaSource?.Container,
+    });
     let url: string;
     let playMethod: StreamInfo["playMethod"];
 
@@ -165,6 +170,12 @@ export async function initializeStream(
       : container === "webm" ? "video/webm"
       : container === "ts" ? "video/mp2t"
       : "video/mp4";
+
+    console.log("[StreamInitializer] Sending to Cast player:", {
+      contentType,
+      playMethod,
+      url: url.replace(/([?&]api_key=)[^&]+/, "$1***"),
+    });
 
     // Build external subtitle track if one was requested.
     // Jellyfin serves SubRip/text subtitles as VTT via a dedicated endpoint.
