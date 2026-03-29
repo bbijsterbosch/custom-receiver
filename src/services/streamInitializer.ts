@@ -147,8 +147,12 @@ export async function initializeStream(
       );
     }
 
+    const container = mediaSource?.Container?.toLowerCase();
     const contentType = url.includes(".m3u8")
       ? "application/x-mpegURL"
+      : container === "mkv" ? "video/x-matroska"
+      : container === "webm" ? "video/webm"
+      : container === "ts" ? "video/mp2t"
       : "video/mp4";
 
     // Build external subtitle track if one was requested.

@@ -201,7 +201,7 @@ export function initializeReceiver(): void {
       // Set poster image so the CAF player shows it while buffering.
       const creds = getCredentials();
       if (creds) {
-        const posterUrl = `${creds.serverUrl}/Items/${customData.SeasonId}/Images/Primary?maxWidth=400&quality=90`;
+        const posterUrl = `${creds.serverUrl}/Items/${customData.SeasonId ?? customData.Id}/Images/Primary?maxWidth=400&quality=90`;
         loadRequestData.media.metadata = {
           ...((loadRequestData.media.metadata as object) ?? {}),
           images: [{ url: posterUrl }],
