@@ -27,6 +27,7 @@ const chromecast: DeviceProfile = {
       Codec: "h264",
       Conditions: [
         { Condition: "LessThanEqual", Property: "VideoFramerate", Value: "30", IsRequired: false },
+        { Condition: "LessThanEqual", Property: "VideoLevel", Value: "41", IsRequired: false },
       ],
     },
     {
