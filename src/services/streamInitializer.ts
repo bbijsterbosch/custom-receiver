@@ -162,7 +162,23 @@ export async function initializeStream(
         url.replace(/([?&]api_key=)[^&]+/, "$1***"),
       );
     } else if (transcodingUrl) {
-      url = `${api.basePath}${transcodingUrl}`;
+      // Jellyfin may ignore AudioStreamIndex in the PlaybackInfoDto body and
+      // default to the media source's preferred stream. Patch it directly in
+      // the URL — the HLS transcoder reads parameters from the URL per-segment.
+      let patchedTranscodingUrl = transcodingUrl;
+      if (
+        customData.audioStreamIndex !== undefined &&
+        !transcodingUrl.includes(`AudioStreamIndex=${customData.audioStreamIndex}`)
+      ) {
+        patchedTranscodingUrl = transcodingUrl.replace(
+          /([?&]AudioStreamIndex=)[^&]*/,
+          `$1${customData.audioStreamIndex}`,
+        );
+        console.log(
+          `[StreamInitializer] Patched AudioStreamIndex: ${urlDebugParams?.AudioStreamIndex} → ${customData.audioStreamIndex}`,
+        );
+      }
+      url = `${api.basePath}${patchedTranscodingUrl}`;
       // Audio-only transcode is still DirectStream — video is copied as-is.
       playMethod = videoTranscoded ? "Transcode" : "DirectStream";
       console.log(
